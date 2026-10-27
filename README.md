@@ -4,6 +4,8 @@ Active exploratory testing for websites you own. Verify a site, authorize test a
 
 **Work in progress.** This repository contains the independent ChatGPT implementation. It is not a deployed scanner or a completed security certification. Public website execution is disabled.
 
+The [connected local MVP](docs/CONNECTED_MVP.md) now runs live Meta exploration from the UI, independently verifies a saved finding, retests the original assertion against the corrected owned demo, and exports the frozen recipe/evidence. The actual UI run completed 55 browser actions for $1.068351. The Next.js hosting target is Vercel; the separate worker/browser backend uses Fly. Hosted public-site execution is still being completed.
+
 ![Oddhound workspace](docs/assets/workspace.png)
 
 ## Implemented so far

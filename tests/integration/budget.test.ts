@@ -3,8 +3,25 @@ import {getPool} from '../../packages/db';
 import {reserveCall,settleCall,unknownCall,releaseUnusedBudget,admitAction} from '../../packages/db/budget';
 import {changeCredential,revokeSiteProof} from '../../packages/db/revocation';import {randomBytes} from 'node:crypto';
 import {freezeAssertion,assertionDetail,loadAssertionTask,finishAssertionAttempt,abandonAssertionAttempt} from '../../packages/db/assertions';import {assertionHash,evaluateRecordEvidence} from '@oddhound/checks';import {numericAssertion} from '../../apps/fixture/assertion';
+import {startOwnedDemo,claimOwnedDemo,finishOwnedDemo,localDemoEnabled} from '../../apps/web/lib/owned-demo';
 if(!new URL(process.env.DATABASE_URL??'postgres://invalid').pathname.endsWith('_test'))throw new Error('Integration tests require a dedicated _test database');
 const pool=getPool();after(()=>pool.end());
+
+test('owned-demo admission requires a live local runner, atomically reserves funds and never replays a lost claim',async()=>{
+  const saved={NODE_ENV:process.env.NODE_ENV,ODDHOUND_LOCAL_WORKSPACE:process.env.ODDHOUND_LOCAL_WORKSPACE,ODDHOUND_ENABLE_PAID_LAB:process.env.ODDHOUND_ENABLE_PAID_LAB,ODDHOUND_DEVELOPMENT_MODEL_ALLOCATION_USD:process.env.ODDHOUND_DEVELOPMENT_MODEL_ALLOCATION_USD,META_API_KEY:process.env.META_API_KEY};
+  try{
+    (process.env as Record<string,string|undefined>).NODE_ENV='production';process.env.ODDHOUND_LOCAL_WORKSPACE='1';process.env.ODDHOUND_ENABLE_PAID_LAB='1';assert.equal(localDemoEnabled(),false);await assert.rejects(claimOwnedDemo(),/owned_demo_not_enabled/);
+    (process.env as Record<string,string|undefined>).NODE_ENV='development';process.env.ODDHOUND_DEVELOPMENT_MODEL_ALLOCATION_USD='5';process.env.META_API_KEY='synthetic-no-inference-test-transport';
+    await pool.query('TRUNCATE assertion_retests,artifacts,credentials,browser_machines,browser_allocations,findings,run_events,run_outbox,action_ledger,call_ledger,runs,sites CASCADE');await pool.query("DELETE FROM worker_heartbeats WHERE id='owned-demo-host'");await pool.query("UPDATE public_budget SET held=0,kill_switch=false WHERE id='public'");await pool.query("DELETE FROM model_funds WHERE id='development'");
+    await assert.rejects(startOwnedDemo(),/owned_demo_runner_offline/);assert.equal(await claimOwnedDemo(),null);
+    const competing=await Promise.allSettled([startOwnedDemo(),startOwnedDemo()]);assert.equal(competing.filter(r=>r.status==='fulfilled').length,1);const id=(competing.find(r=>r.status==='fulfilled') as PromiseFulfilledResult<string>).value;
+    assert.equal(Number((await pool.query("SELECT held_micros FROM model_funds WHERE id='development'")).rows[0].held_micros),2000000);
+    const job=await claimOwnedDemo();assert.equal(job!.id,id);assert.equal(job!.kind,'explore');assert.equal(await claimOwnedDemo(),null);assert(!JSON.stringify(job).includes('RUN_PATH'));
+    await pool.query("UPDATE runs SET status='stopping',stop_reason='user_cancelled',generation=generation+1 WHERE id=$1",[id]);const cleanup=await claimOwnedDemo();assert.equal(cleanup!.kind,'cleanup');await finishOwnedDemo(id,1);
+    assert.equal((await pool.query('SELECT status FROM runs WHERE id=$1',[id])).rows[0].status,'stopped');assert.equal(Number((await pool.query("SELECT held_micros FROM model_funds WHERE id='development'")).rows[0].held_micros),0);assert.equal((await pool.query('SELECT 1 FROM call_ledger WHERE run_id=$1',[id])).rowCount,0);
+    const failed=await startOwnedDemo();await claimOwnedDemo();await finishOwnedDemo(failed,1);assert.equal((await pool.query('SELECT quota_refunded FROM runs WHERE id=$1',[failed])).rows[0].quota_refunded,true);
+  }finally{for(const [key,value] of Object.entries(saved)){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
+});
 
 test('SQL freezes owner assertions, isolates tenants and preserves failed/passed/blocked regression history',async()=>{
   await pool.query("UPDATE public_budget SET kill_switch=false WHERE id='public'");

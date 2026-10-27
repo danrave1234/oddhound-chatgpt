@@ -2,6 +2,8 @@
 
 Oddhound is an active exploratory testing product. A GitHub-signed-in owner verifies an exact public HTTPS origin, approves an immutable capability/account/test-data contract and lets a Meta-driven agent discover and exercise the interface. It must work beyond a curated demo. The owner may authorize production writes with suitable test accounts and explicit effects; observation-only is optional.
 
+Hosting clarification from Drave: the Next.js web app belongs on Vercel. Browser jobs and the trusted worker require a separately verified execution profile. Existing Fly lifecycle code does not make Fly an account prerequisite for the frontend. The local owned-demo profile is development-only and does not clear hosted/public execution or silently replace its isolation requirements.
+
 - Ownership uses a per-user/origin/revision 256-bit token in DNS TXT, a well-known text file, or a real head meta tag. Recheck before every run/resume. Helpers reject redirects, private/internal/metadata/6PN destinations, pin validated addresses at dial, preserve TLS checks and bound responses.
 - Primary UI and independently verified first-party API authority are separate. Public resources carry no action authority. A newly discovered endpoint never expands origins, actors, fixture ownership or forbidden effects.
 - Run-level grants permit signup/login and synthetic create/edit/cancel, boundaries, repeats and unusual order. Generic browser code cannot infer every business side effect. Use synthetic staging data and least-privilege test accounts, with narrower grants where necessary. No per-click approval or prescribed discovery script.

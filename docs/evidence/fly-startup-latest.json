@@ -1,0 +1,14 @@
+{
+  "startedAt": "2026-10-27T09:03:37.8057393Z",
+  "profile": "gateway-sandbox-v1",
+  "error": "browser_private_address_missing",
+  "runId": "ea37afeb-f3e7-4834-a483-633367e81e6f",
+  "claims": "Deployed startup/private-control/sandbox component evidence only. No initialization, navigation, website scan, model call or complete runtime/public gate claim. Probe Machines are destroyed afterward.",
+  "image": "registry.fly.io/oddhound-chatgpt-browser@sha256:ff2d1972f23ce953d7728001b17343cd4554959e46d1982d1dd08ad46f494bf8",
+  "passed": false,
+  "finishedAt": "2026-10-27T09:04:59.8438862Z",
+  "siteNavigation": false,
+  "cleanupConfirmed": true,
+  "modelInference": false,
+  "region": "sin"
+}

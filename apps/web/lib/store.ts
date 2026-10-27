@@ -15,7 +15,8 @@ const run=(r:Record<string,any>):Run=>({id:r.id,siteId:r.site_id,siteName:r.site
 export async function workspace():Promise<Workspace>{
   const actor=await identity();const availability={database:false,github:authConfigured(),meta:Boolean(process.env.META_API_KEY),browser:runtimeConfigured(),publicLaunch:process.env.ODDHOUND_PUBLIC_LAUNCH_ENABLED==='1'};
   try{const pool=getPool();await pool.query('SELECT 1');availability.database=true;if(!actor)return{identity:null,sites:[],runs:[],remainingRuns:3,availability};
-    const [sites,runs,count]=await Promise.all([pool.query('SELECT * FROM sites WHERE owner_id=$1 ORDER BY created_at DESC',[actor.id]),pool.query('SELECT r.*,s.name site_name,s.origin FROM runs r LEFT JOIN sites s ON s.id=r.site_id WHERE r.owner_id=$1 ORDER BY r.created_at DESC LIMIT 50',[actor.id]),pool.query("SELECT count(*) FROM runs WHERE owner_id=$1 AND funding_account='public' AND quota_refunded=false AND created_at >= ((now() AT TIME ZONE 'UTC')::date::timestamp AT TIME ZONE 'UTC')",[actor.id])]);
+    const quota=actor.local?"scope->>'interactiveDemo'='true'":"funding_account='public'";
+    const [sites,runs,count]=await Promise.all([pool.query('SELECT * FROM sites WHERE owner_id=$1 ORDER BY created_at DESC',[actor.id]),pool.query('SELECT r.*,s.name site_name,s.origin FROM runs r LEFT JOIN sites s ON s.id=r.site_id WHERE r.owner_id=$1 ORDER BY r.created_at DESC LIMIT 50',[actor.id]),pool.query(`SELECT count(*) FROM runs WHERE owner_id=$1 AND ${quota} AND quota_refunded=false AND created_at >= ((now() AT TIME ZONE 'UTC')::date::timestamp AT TIME ZONE 'UTC')`,[actor.id])]);
     return{identity:actor,sites:sites.rows.map(site),runs:runs.rows.map(run),remainingRuns:Math.max(0,3-Number(count.rows[0].count)),availability};
   }catch{return{identity:actor,sites:[],runs:[],remainingRuns:3,availability};}
 }

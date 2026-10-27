@@ -1,0 +1,177 @@
+{
+  "runId": "a53f4907-b414-4bfc-bc8e-f33a06dfaf8f",
+  "startedAt": "2026-10-27T08:29:43.546Z",
+  "provider": "Direct Meta",
+  "model": "muse-spark-1.3",
+  "profile": "owned-lab-v1",
+  "autonomous": true,
+  "scripted": false,
+  "seedKnowledgeProvided": false,
+  "paidCeilingUsd": 2,
+  "fundingAccount": "development",
+  "inputUsdPerMillion": 1.25,
+  "outputUsdPerMillion": 4.25,
+  "pricingSource": "https://dev.meta.ai/models/muse-spark",
+  "imagesSent": false,
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "browserCloseAcknowledged": true,
+  "completed": true,
+  "checks": {
+    "registered": true,
+    "returnedLogin": true,
+    "validCreate": true,
+    "edited": true,
+    "cancelled": true,
+    "invalidPersisted": true
+  },
+  "storeChanges": [
+    {
+      "action": "click",
+      "created": [
+        2
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [
+        {
+          "from": 2,
+          "to": 3
+        }
+      ],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [
+        {
+          "from": 3,
+          "to": 0
+        }
+      ],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [
+        {
+          "from": 0,
+          "to": 9
+        }
+      ],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        0
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        9
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        -1
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        2
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [],
+      "cancelled": 1
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [],
+      "cancelled": 1
+    },
+    {
+      "action": "click",
+      "created": [
+        4
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        1
+      ],
+      "updated": [],
+      "cancelled": 0
+    }
+  ],
+  "modelCandidates": [
+    {
+      "title": "Create booking accepts 0 seats",
+      "rule": "Bookings must have an integer from 1 through 8 seats.",
+      "observed": "Created lab_2df606d786_boundary0 with Seats 0; page showed 'lab_2df606d786_boundary0 confirmed 0 seats' with 'Your changes were saved' despite rule text stating 1-8.",
+      "status": "candidate"
+    },
+    {
+      "title": "Create booking accepts 9 seats",
+      "rule": "Bookings must have an integer from 1 through 8 seats.",
+      "observed": "Created lab_2df606d786_boundary9 with Seats 9; page showed 'lab_2df606d786_boundary9 confirmed 9 seats' with 'Your changes were saved' despite 1-8 rule.",
+      "status": "candidate"
+    },
+    {
+      "title": "Create booking accepts -1 seats",
+      "rule": "Bookings must have an integer from 1 through 8 seats.",
+      "observed": "Created lab_2df606d786_neg with Seats -1; page showed 'lab_2df606d786_neg confirmed -1 seats' despite 1-8 rule.",
+      "status": "candidate"
+    },
+    {
+      "title": "Edit booking allows 0 seats",
+      "rule": "Bookings must have an integer from 1 through 8 seats.",
+      "observed": "Updated lab_2df606d786_bookingA from 3 seats to 0 seats; page showed '0 seats' with 'Your changes were saved' despite 1-8 rule.",
+      "status": "candidate"
+    },
+    {
+      "title": "Edit booking allows 9 seats",
+      "rule": "Bookings must have an integer from 1 through 8 seats.",
+      "observed": "Updated same booking from 0 to 9 seats; page showed '9 seats' with 'Your changes were saved' despite 1-8 rule.",
+      "status": "candidate"
+    }
+  ],
+  "actions": 55,
+  "turns": 56,
+  "spentMicros": 1068351,
+  "heldMicros": 0,
+  "unknownUsage": false,
+  "expectedControl": "vulnerable",
+  "passed": true,
+  "finishedAt": "2026-10-27T08:32:30.172Z",
+  "claims": "Real Meta-driven owned local workflow only. No Fly lifecycle, public-site or complete SELF clearance.",
+  "interactive": true
+}

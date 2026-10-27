@@ -1,0 +1,155 @@
+{
+  "recordedAt": "2026-10-27T08:51:45.987Z",
+  "entry": "Actual Oddhound UI buttons, not direct CLI admission",
+  "runs": [
+    {
+      "id": "a53f4907-b414-4bfc-bc8e-f33a06dfaf8f",
+      "status": "completed",
+      "actions": 55,
+      "turns": 56,
+      "spent_micros": 1068351,
+      "held_micros": 0,
+      "unknown_usage": false,
+      "funding_account": "development"
+    },
+    {
+      "id": "167c7249-c5d5-4e39-baec-0dca5148da50",
+      "status": "completed",
+      "actions": 15,
+      "turns": 0,
+      "spent_micros": 0,
+      "held_micros": 0,
+      "unknown_usage": false,
+      "funding_account": "development"
+    },
+    {
+      "id": "3e11c8d1-d08e-4812-be92-8bec6de12b8b",
+      "status": "completed",
+      "actions": 15,
+      "turns": 0,
+      "spent_micros": 0,
+      "held_micros": 0,
+      "unknown_usage": false,
+      "funding_account": "development"
+    }
+  ],
+  "finding": {
+    "id": "b1c4bba2-9023-47bb-a5ec-b38ba9b315a2",
+    "status": "verified",
+    "lifecycle": "fixed",
+    "assertion_version": "ab42b4ea4f29e2befdc27c66c606a95165e0dc70e65f9226d6ac4fa279611ba8"
+  },
+  "attempts": [
+    {
+      "run_id": "167c7249-c5d5-4e39-baec-0dca5148da50",
+      "status": "failed",
+      "assertion_hash": "ab42b4ea4f29e2befdc27c66c606a95165e0dc70e65f9226d6ac4fa279611ba8",
+      "evidence": {
+        "probe": {
+          "url": "https://fixture-lab:3002/",
+          "text": "lab_2df606d786_167c7249_probe confirmed\n\n-1 seats\n\nUpdate seats for lab_2df606d786_167c7249_probe\nUpdate seats Cancel booking",
+          "value": -1,
+          "recordCount": 1,
+          "guardObserved": true
+        },
+        "scope": "Only the declared numeric form and rendered record were checked.",
+        "oracle": "fresh_rendered_record",
+        "reason": "rendered_record_contradicts_rule",
+        "status": "failed",
+        "control": {
+          "url": "https://fixture-lab:3002/",
+          "text": "lab_2df606d786_167c7249_control confirmed\n\n3 seats\n\nUpdate seats for lab_2df606d786_167c7249_control\nUpdate seats Cancel booking",
+          "value": 3,
+          "recordCount": 1,
+          "guardObserved": true
+        },
+        "ruleSource": "owner_approved",
+        "controlAfter": {
+          "url": "https://fixture-lab:3002/",
+          "text": "lab_2df606d786_167c7249_control confirmed\n\n3 seats\n\nUpdate seats for lab_2df606d786_167c7249_control\nUpdate seats Cancel booking",
+          "value": 3,
+          "recordCount": 1,
+          "guardObserved": true
+        },
+        "assertionHash": "ab42b4ea4f29e2befdc27c66c606a95165e0dc70e65f9226d6ac4fa279611ba8",
+        "modelInference": false
+      }
+    },
+    {
+      "run_id": "3e11c8d1-d08e-4812-be92-8bec6de12b8b",
+      "status": "passed",
+      "assertion_hash": "ab42b4ea4f29e2befdc27c66c606a95165e0dc70e65f9226d6ac4fa279611ba8",
+      "evidence": {
+        "probe": {
+          "url": "https://fixture-lab:3002/",
+          "text": "",
+          "value": null,
+          "recordCount": 0,
+          "guardObserved": true
+        },
+        "scope": "Only the declared numeric form and rendered record were checked.",
+        "oracle": "fresh_rendered_record",
+        "reason": "probe_satisfies_rule_with_valid_control",
+        "status": "passed",
+        "control": {
+          "url": "https://fixture-lab:3002/",
+          "text": "lab_2df606d786_3e11c8d1_control confirmed\n\n3 seats\n\nUpdate seats for lab_2df606d786_3e11c8d1_control\nUpdate seats Cancel booking",
+          "value": 3,
+          "recordCount": 1,
+          "guardObserved": true
+        },
+        "ruleSource": "owner_approved",
+        "controlAfter": {
+          "url": "https://fixture-lab:3002/",
+          "text": "lab_2df606d786_3e11c8d1_control confirmed\n\n3 seats\n\nUpdate seats for lab_2df606d786_3e11c8d1_control\nUpdate seats Cancel booking",
+          "value": 3,
+          "recordCount": 1,
+          "guardObserved": true
+        },
+        "assertionHash": "ab42b4ea4f29e2befdc27c66c606a95165e0dc70e65f9226d6ac4fa279611ba8",
+        "modelInference": false
+      }
+    }
+  ],
+  "removals": [
+    {
+      "run_id": "a53f4907-b414-4bfc-bc8e-f33a06dfaf8f",
+      "data": {
+        "profile": "owned-lab-v1",
+        "exitCode": 0
+      }
+    },
+    {
+      "run_id": "167c7249-c5d5-4e39-baec-0dca5148da50",
+      "data": {
+        "profile": "owned-lab-v1",
+        "exitCode": 0
+      }
+    },
+    {
+      "run_id": "3e11c8d1-d08e-4812-be92-8bec6de12b8b",
+      "data": {
+        "profile": "owned-lab-v1",
+        "exitCode": 0
+      }
+    }
+  ],
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "autonomousChecks": {
+    "registered": true,
+    "returnedLogin": true,
+    "validCreate": true,
+    "edited": true,
+    "cancelled": true,
+    "invalidPersisted": true
+  },
+  "model": "muse-spark-1.3",
+  "provider": "Direct Meta",
+  "hostedPublicLaunch": false,
+  "claims": "Real local UI admission, Meta exploration, independent deterministic verification and unchanged corrected-target retest. No Fly/public-site or complete SELF clearance."
+}
