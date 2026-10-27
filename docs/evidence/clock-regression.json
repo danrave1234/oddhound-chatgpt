@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-10-27T13:08:56.535301+00:00",
+  "baseCommit": "7d77267a0478c75b7917fc815db330aa38c0b068",
+  "initialSetupAttempt": {
+    "meaningfulClockProbe": false,
+    "reason": "Standalone fixture retained the test kill switch; corrected initialization did not alter production controls."
+  },
+  "beforeFix": {
+    "testExit": 1,
+    "controllerClockOffsetMs": 3600000,
+    "providerResponse": "recorded empty inventory",
+    "actualRelease": true,
+    "expectedRelease": false,
+    "failure": "A controller clock ahead of PostgreSQL cannot release an uncertain allocation early.",
+    "logSha256": "10f6d5652fd2f91cf6f4797ce170fc8e7e12fbb8c59ff0bea800a342a8b98c7f"
+  },
+  "afterFix": {
+    "focusedTestExit": 0,
+    "localIntegrationTests": 17,
+    "hostedIntegrationTests": 17,
+    "releaseUsesPostgresClock": true,
+    "modelAndActionExpiryUsePostgresClock": true,
+    "controllerBehindClockOffsetMs": -3600000,
+    "logSha256": "fb47374a657c8220dde3f76ab8bca653153f70a1565b2c6c3dc5553345b4d02f"
+  },
+  "modelInference": false,
+  "mocked": [
+    "controller Date.now",
+    "provider inventory/error responses",
+    "test deadline advancement"
+  ],
+  "actual": [
+    "PostgreSQL ledger/locks",
+    "hosted managed PostgreSQL regression suite"
+  ],
+  "claims": "Reproduced early unknown-allocation release under injected controller clock skew; fixed with database-clock decisions. This is component evidence, not a complete runtime or public-launch verdict."
+}

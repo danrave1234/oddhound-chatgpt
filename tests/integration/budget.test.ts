@@ -122,6 +122,7 @@ test('SQL reserves regional browser compute once under races and never resets ch
 });
 
 test('unknown create keeps compute held through cleanup failure and the late-create window; confirmed deletion settles once',async()=>{
+  await pool.query("UPDATE public_budget SET kill_switch=false WHERE id='public'");
   const saved={FLY_API_TOKEN:process.env.FLY_API_TOKEN,ODDHOUND_BROWSER_APP:process.env.ODDHOUND_BROWSER_APP,FLY_APP_NAME:process.env.FLY_APP_NAME},originalFetch=globalThis.fetch;
   let calls=0,providerFails=true;
   globalThis.fetch=(async()=>{calls++;return providerFails?new Response('{}',{status:503}):new Response('[]',{status:200});}) as typeof fetch;
@@ -134,6 +135,7 @@ test('unknown create keeps compute held through cleanup failure and the late-cre
     await pool.query("UPDATE browser_compute_budget SET rate_expires_at=now()-interval '1 second' WHERE id='browser'");await assert.rejects(reserveBrowserCompute(run.id,1,'sin',run.expiresAt),/compute_budget_not_configured/);await configureBrowserCompute(computeQuote());
     const held=await reserveBrowserCompute(run.id,1,'sin',run.expiresAt);await pool.query("UPDATE browser_allocations SET state='unknown' WHERE run_id=$1",[run.id]);
     assert.equal(await destroy(run.id),false);providerFails=false;assert.equal(await destroy(run.id),false);
+    const realNow=Date.now;try{Date.now=()=>realNow()+3600000;assert.equal(await destroy(run.id),false,'A controller clock ahead of PostgreSQL cannot release an uncertain allocation early.');}finally{Date.now=realNow;}
     let balance=(await pool.query("SELECT held_micros,spent_micros FROM browser_compute_budget WHERE id='browser'")).rows[0];assert.equal(Number(balance.held_micros),held);assert.equal(Number(balance.spent_micros),0);
     // Synthetic time advancement and recorded provider responses, not a Fly probe.
     await pool.query("UPDATE browser_allocations SET expires_at=now()-interval '61 seconds' WHERE run_id=$1",[run.id]);
@@ -146,7 +148,7 @@ test('unknown create keeps compute held through cleanup failure and the late-cre
     assert.equal((await pool.query('SELECT state FROM browser_compute_reservations WHERE run_id=$1',[run.id])).rows[0].state,'charged');
   }finally{
     globalThis.fetch=originalFetch;for(const [key,value] of Object.entries(saved)){if(value===undefined)delete process.env[key];else process.env[key]=value;}
-    await pool.query('DELETE FROM browser_compute_reservations');await pool.query('DELETE FROM browser_compute_budget');await pool.query("UPDATE runs SET status='blocked' WHERE id=$1",[run.id]);await pool.query("UPDATE public_budget SET kill_switch=false WHERE id='public'");
+    await pool.query('DELETE FROM browser_compute_reservations');await pool.query('DELETE FROM browser_compute_budget');await pool.query("UPDATE browser_allocations SET state='released' WHERE run_id=$1",[run.id]);await pool.query("UPDATE runs SET status='blocked' WHERE id=$1",[run.id]);await pool.query("UPDATE public_budget SET kill_switch=false WHERE id='public'");
   }
 });
 
@@ -235,6 +237,8 @@ test('real SQL serializes competing reservations, fences writes, and retains unc
   const uncertain=await reserveCall(r,2,12345);await unknownCall(r,uncertain);await releaseUnusedBudget(r);
   b=(await pool.query("SELECT held,lifetime_spent FROM public_budget WHERE id='public'")).rows[0];assert.equal(Number(b.held),12345);assert.equal(Number(b.lifetime_spent),50);
   const run=(await pool.query('SELECT held_micros,unknown_usage FROM runs WHERE id=$1',[r])).rows[0];assert.equal(Number(run.held_micros),12345);assert.equal(run.unknown_usage,true);
+  await pool.query("UPDATE runs SET expires_at=clock_timestamp()-interval '1 second' WHERE id=$1",[r]);
+  const realNow=Date.now;try{Date.now=()=>realNow()-3600000;await assert.rejects(reserveCall(r,2,10),/run_expired/);await assert.rejects(admitAction(r,2,'clock-behind-action'),/run_expired/);}finally{Date.now=realNow;}
   await pool.query("UPDATE public_budget SET kill_switch=true WHERE id='public'");await assert.rejects(admitAction(r,2,'disabled'),/run_fenced/);
 });
 

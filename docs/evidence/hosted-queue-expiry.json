@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-10-27T12:55:38.736Z",
+  "runId": "96c78949-2ab9-43a7-a607-fcf5ea80141b",
+  "synthetic": true,
+  "shortenedDeadlineSeconds": 3,
+  "status": "blocked",
+  "stop_reason": "queue_expired",
+  "quota_refunded": true,
+  "held_micros": "0",
+  "actions": 0,
+  "turns": 0,
+  "queue_expires_at": "2026-10-27T12:55:35.720Z",
+  "finished_at": "2026-10-27T12:55:39.071Z",
+  "locks": 0,
+  "outbox": 0,
+  "browsers": 0,
+  "calls": 0,
+  "expirySource": "reaper",
+  "modelInference": false,
+  "passed": true,
+  "claims": "Actual deployed independent reaper expires a synthetic targetless queue record with a shortened deadline and no outbox job; it releases the origin lock without browser or model execution. This is not a website scan or public release."
+}

@@ -4,10 +4,10 @@ import { limits } from '@oddhound/contracts';
 // Lock order everywhere: global budget, then run, then individual ledger entry.
 async function locked(c:any,id:string,generation:number){
   const budget=(await c.query("SELECT * FROM public_budget WHERE id='public' FOR UPDATE")).rows[0];
-  const r=(await c.query('SELECT * FROM runs WHERE id=$1 FOR UPDATE',[id])).rows[0];
+  const r=(await c.query('SELECT *,expires_at<=clock_timestamp() expired FROM runs WHERE id=$1 FOR UPDATE',[id])).rows[0];
   if(!r)throw new Error('not_found');
   if(r.generation!==generation||!['provisioning','running'].includes(r.status)||budget.kill_switch)throw new Error('run_fenced');
-  if(!r.expires_at||new Date(r.expires_at).getTime()<=Date.now())throw new Error('run_expired');
+  if(!r.expires_at||r.expired)throw new Error('run_expired');
   if(r.funding_account!=='public'){
     const fund=(await c.query('SELECT * FROM model_funds WHERE id=$1 FOR UPDATE',[r.funding_account])).rows[0];
     if(!fund||Number(fund.held_micros)<Number(r.held_micros))throw new Error('funding_account_inconsistent');

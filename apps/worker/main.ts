@@ -19,7 +19,7 @@ async function processRun(id:string){
   if(!row)return;
   const controller=new AbortController(),signal=controller.signal,generation=row.generation;
   let reason:string|null=null,completed=false,activeBrowser:BrowserRuntime|undefined;
-  const fence=async()=>{signal.throwIfAborted();const r=(await pool.query("SELECT r.status,r.generation,r.expires_at,b.kill_switch FROM runs r CROSS JOIN public_budget b WHERE r.id=$1 AND b.id='public'",[id])).rows[0];if(!r||r.generation!==generation||!['provisioning','running'].includes(r.status)||r.kill_switch)throw new Error('run_fenced');if(new Date(r.expires_at).getTime()<=Date.now())throw new Error('run_expired');};
+  const fence=async()=>{signal.throwIfAborted();const r=(await pool.query("SELECT r.status,r.generation,r.expires_at,r.expires_at<=clock_timestamp() expired,b.kill_switch FROM runs r CROSS JOIN public_budget b WHERE r.id=$1 AND b.id='public'",[id])).rows[0];if(!r||r.generation!==generation||!['provisioning','running'].includes(r.status)||r.kill_switch)throw new Error('run_fenced');if(!r.expires_at||r.expired)throw new Error('run_expired');};
   let heartbeatBusy=false;
   const timer=setInterval(()=>{if(heartbeatBusy)return;heartbeatBusy=true;void fence().then(()=>pool.query("UPDATE runs SET lease_until=now()+interval '45 seconds' WHERE id=$1 AND lease_owner=$2 AND generation=$3",[id,workerId,generation])).catch(e=>controller.abort(e)).finally(()=>{heartbeatBusy=false;});},1000);
   try{
