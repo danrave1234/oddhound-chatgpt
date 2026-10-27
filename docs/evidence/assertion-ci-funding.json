@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-27",
+  "source": "actual PostgreSQL runs and call_ledger query after both owned browser checks",
+  "owner": "engineering-tests",
+  "runs": [
+    {"id": "cb6a2eaa-0c3e-4251-b674-54171ee60356", "fundingAccount": "public", "spentMicros": 0, "heldMicros": 0, "modelCalls": 0},
+    {"id": "c673b794-cb87-40ec-b53b-3928bce94b08", "fundingAccount": "public", "spentMicros": 0, "heldMicros": 0, "modelCalls": 0}
+  ],
+  "judgingReserveUsed": false,
+  "developmentAllocationRequired": false,
+  "publicUserAdmissionTest": false
+}

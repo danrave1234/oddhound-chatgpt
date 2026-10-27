@@ -48,6 +48,8 @@ docker compose -f compose.yaml -f compose.browser-lab.yaml run --rm browser-lab-
 
 CI uses the explicit synthetic-candidate flag. It does not fabricate an autonomous candidate, use a provider key or make paid calls. Local verification used the saved real Meta candidate through the explicit `--finding=<id>` flag. Every attempt gets a fresh browser; only the immutable assertion/finding identity carries across. Synthetic accounts and records created by the lab are removed afterward. Private control capabilities stay in ignored `data/` files.
 
+The clean-CI path uses the separate `engineering-tests` identity and a zero-held/zero-spent public ledger row; it does not assume a development allocation exists. The original Meta-candidate checks retain their original local-developer/development identity. An audit caught that dependency before the queued remote job started. The exact synthetic CI commands then passed locally on fresh browsers [cb6a2eaa](evidence/fixed-assertion-cb6a2eaa-0c3e-4251-b674-54171ee60356.json) and [c673b794](evidence/fixed-assertion-c673b794-cb87-40ec-b53b-3928bce94b08.json). Both had zero model calls, zero spent and zero held micros; [SQL accounting evidence](evidence/assertion-ci-funding.json) records that check. These are engineering checks, not public user admission or anonymous-demo budget clearance.
+
 ## Limits and remaining work
 
 - This checks a numeric **create form** and a fresh rendered record. Edit/cancel, authorization, accessibility and other findings still need supported templates; they remain candidates until proved. Owner review and exact setup configuration are currently required. Automatic conversion from discovery records into a reviewed recipe is unfinished.

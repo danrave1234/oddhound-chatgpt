@@ -12,16 +12,16 @@ try{
   if(retest)findingId=JSON.parse(await readFile('data/fixed-assertion-lab.json','utf8')).findingId;
   else findingId=process.argv.find(a=>a.startsWith('--finding='))?.slice(10)??'';
   if(!findingId&&process.argv.includes('--synthetic-candidate')){
-    const source=(await pool.query("INSERT INTO runs(owner_id,goal,status,scope,held_micros) VALUES('local-developer','Explicitly scripted assertion candidate','completed',$1,0) RETURNING id",[{kind:'demo',origin:scope.origin,labOnly:true}])).rows[0].id;
+    const source=(await pool.query("INSERT INTO runs(owner_id,goal,status,scope,held_micros) VALUES('engineering-tests','Explicitly scripted assertion candidate','completed',$1,0) RETURNING id",[{kind:'demo',origin:scope.origin,labOnly:true}])).rows[0].id;
     findingId=(await pool.query("INSERT INTO findings(run_id,title,status,category,severity,rule,observed,assertion_version,evidence) VALUES($1,'Numeric-create assertion canary','candidate','needs_review','info',$2,'Synthetic engineering candidate','candidate',$3) RETURNING id",[source,numericAssertion(scope.origin).rule,{source:'scripted_canary'}])).rows[0].id;
   }
   assert(findingId,'Supply an existing candidate or the explicit synthetic-candidate flag');
-  const source=(await pool.query('SELECT f.*,r.owner_id,r.turns FROM findings f JOIN runs r ON r.id=f.run_id WHERE f.id=$1',[findingId])).rows[0];assert(source&&source.owner_id==='local-developer');
+  const source=(await pool.query('SELECT f.*,r.owner_id,r.turns FROM findings f JOIN runs r ON r.id=f.run_id WHERE f.id=$1',[findingId])).rows[0];assert(source&&['local-developer','engineering-tests'].includes(source.owner_id));const owner=source.owner_id;
   evidence.candidateSource=source.evidence.source==='meta_candidate'&&source.turns>0?'historical_real_meta':'scripted_canary';evidence.findingId=findingId;
-  let detail=await assertionDetail('local-developer',findingId);if(!detail)detail=await freezeAssertion('local-developer',findingId,numericAssertion(scope.origin));
+  let detail=await assertionDetail(owner,findingId);if(!detail)detail=await freezeAssertion(owner,findingId,numericAssertion(scope.origin));
   assert(detail);const hash=detail.hash;assert.equal(assertionHash(detail.spec),hash);evidence.assertionHash=hash;
   if(!retest)await writeFile('data/fixed-assertion-lab.json',JSON.stringify({findingId,hash})+'\n');else assert.equal(JSON.parse(await readFile('data/fixed-assertion-lab.json','utf8')).hash,hash);pass('original_assertion_and_exact_recipe_unchanged');
-  await pool.query("INSERT INTO runs(id,owner_id,goal,status,scope,held_micros,funding_account,started_at,expires_at,lease_until) VALUES($1,'local-developer','Replay an immutable numeric-record assertion','running',$2,0,'development',now(),$3,$3)",[id,{...scope,kind:'demo',labOnly:true,siteName:'Owned fixed-assertion check',assertionTask:{findingId,hash}},scope.expiresAt]);admitted=true;
+  await pool.query("INSERT INTO runs(id,owner_id,goal,status,scope,held_micros,funding_account,started_at,expires_at,lease_until) VALUES($1,$2,'Replay an immutable numeric-record assertion','running',$3,0,$4,now(),$5,$5)",[id,owner,{...scope,kind:'demo',labOnly:true,siteName:'Owned fixed-assertion check',assertionTask:{findingId,hash}},owner==='engineering-tests'?'public':'development',scope.expiresAt]);admitted=true;
   await pool.query("INSERT INTO assertion_retests(finding_id,assertion_version,assertion_hash,status,run_id,purpose) VALUES($1,$2,$2,'not_run',$3,$4)",[findingId,hash,id,retest?'retest':'verification']);if(source.status!=='verified')await pool.query("UPDATE findings SET status='verifying' WHERE id=$1",[findingId]);
   const browser={call:rpc,observe:async()=>browserObservation.parse(await rpc('observe')),execute:async(action:any,key:string)=>browserObservation.parse(await rpc('action',{action,key}))};
   await rpc('initialize',{credentials:[]});const fence=async()=>{const r=(await pool.query('SELECT status,generation,expires_at FROM runs WHERE id=$1',[id])).rows[0];if(r.status!=='running'||r.generation!==1||new Date(r.expires_at).getTime()<=Date.now())throw new Error('run_fenced');};
