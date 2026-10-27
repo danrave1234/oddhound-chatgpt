@@ -3,8 +3,10 @@ import {releaseUnusedBudget} from '../../packages/db/budget';
 import {destroy,reapOrphans,cleanupConfigured} from './runtime';
 import {abandonAssertionAttempt} from '../../packages/db/assertions';
 import {fenceOverdueBrowserCompute} from '../../packages/db/compute';
+import {expireQueuedRuns} from '../../packages/db/admission';
 const pool=getPool();let busy=false;
 async function sweep(){if(busy)return;busy=true;try{
+  await expireQueuedRuns('reaper');
   if(await fenceOverdueBrowserCompute())console.error('Browser cleanup exceeded its compute window. New provisioning is disabled; cleanup continues.');
   if(cleanupConfigured())await reapOrphans();
   const ended=await pool.query("SELECT a.run_id FROM assertion_retests a JOIN runs r ON r.id=a.run_id WHERE a.status='not_run' AND r.status IN ('completed','stopped','failed','blocked')");for(const a of ended.rows)await abandonAssertionAttempt(a.run_id,'run_ended_without_assertion_result');

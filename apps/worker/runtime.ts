@@ -61,13 +61,13 @@ export async function provision(runId:string,generation:number,scope:unknown,exp
   await getPool().query("UPDATE browser_machines SET state='active',sandbox=$2 WHERE run_id=$1",[runId,verdict.sandbox]);return browser;
 }
 export async function destroy(runId:string){
-  const row=(await getPool().query('SELECT * FROM browser_machines WHERE run_id=$1',[runId])).rows[0];if(row?.state==='terminated'){await settleBrowserCompute(runId);return true;}
+  const row=(await getPool().query('SELECT * FROM browser_machines WHERE run_id=$1',[runId])).rows[0];if(row?.state==='terminated'){await settleBrowserCompute(runId);await getPool().query("UPDATE browser_allocations SET state='released' WHERE run_id=$1",[runId]);return true;}
   if(!row){const allocation=(await getPool().query('SELECT * FROM browser_allocations WHERE run_id=$1',[runId])).rows[0];if(!allocation)return !(await getPool().query("SELECT 1 FROM browser_compute_reservations WHERE run_id=$1 AND state='held'",[runId])).rowCount;
     // A timed-out create may still produce a Machine. Keep its slot through the bounded lifetime.
-    try{const matches:Machine[]=(await fly(`/apps/${app()}/machines`)??[]).filter((m:Machine)=>m.config?.metadata?.oddhound_run_id===runId);for(const m of matches)await fly(`/apps/${app()}/machines/${m.id}?force=true`,'DELETE');if(new Date(allocation.expires_at).getTime()+60000>Date.now())return false;const remaining:Machine[]=await fly(`/apps/${app()}/machines`)??[];if(remaining.some(m=>m.config?.metadata?.oddhound_run_id===runId))return false;await settleBrowserCompute(runId);return true;}catch{return false;}}
+    try{const matches:Machine[]=(await fly(`/apps/${app()}/machines`)??[]).filter((m:Machine)=>m.config?.metadata?.oddhound_run_id===runId);for(const m of matches)await fly(`/apps/${app()}/machines/${m.id}?force=true`,'DELETE');if(new Date(allocation.expires_at).getTime()+60000>Date.now())return false;const remaining:Machine[]=await fly(`/apps/${app()}/machines`)??[];if(remaining.some(m=>m.config?.metadata?.oddhound_run_id===runId))return false;await settleBrowserCompute(runId);await getPool().query("UPDATE browser_allocations SET state='released' WHERE run_id=$1",[runId]);return true;}catch{return false;}}
   await getPool().query("UPDATE browser_machines SET state='terminating' WHERE run_id=$1",[runId]);
   try{await fly(`/apps/${row.app}/machines/${row.machine_id}?force=true`,'DELETE');const after=await fly(`/apps/${row.app}/machines/${row.machine_id}`);if(after&&after.state!=='destroyed')throw new Error('machine_deletion_unconfirmed');
-    await getPool().query("UPDATE browser_machines SET state='terminated',deleted_at=now(),cleanup_error=NULL WHERE run_id=$1",[runId]);await settleBrowserCompute(runId);return true;
+    await getPool().query("UPDATE browser_machines SET state='terminated',deleted_at=now(),cleanup_error=NULL WHERE run_id=$1",[runId]);await settleBrowserCompute(runId);await getPool().query("UPDATE browser_allocations SET state='released' WHERE run_id=$1",[runId]);return true;
   }catch(error){await getPool().query('UPDATE browser_machines SET cleanup_error=$2 WHERE run_id=$1',[runId,(error as Error).message]);return false;}
 }
 export async function reapOrphans(){

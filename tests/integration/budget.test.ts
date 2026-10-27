@@ -9,8 +9,89 @@ import {eventDataProjection,readEvent} from '../../packages/db/events';
 import {claimQueuedRun} from '../../apps/worker/claim';
 import {configureBrowserCompute,reserveBrowserCompute,settleBrowserCompute,fenceOverdueBrowserCompute,type ComputeConfiguration} from '../../packages/db/compute';
 import {destroy} from '../../apps/worker/runtime';
+import {admitVerifiedRun,checkPendingAdmission,expireQueuedRuns,stopOwnedRun} from '../../packages/db/admission';
+import {transaction} from '../../packages/db';
+import {RunDeferredError} from '../../apps/worker/claim';
+import {Queue,Worker,createPostgresBackend} from '../../apps/worker/queue';
+import {runQueuedJob} from '../../apps/worker/queued-job';
+import {grant} from '../fixtures/authorization';
+import {randomUUID} from 'node:crypto';
 if(!new URL(process.env.DATABASE_URL??'postgres://invalid').pathname.endsWith('_test'))throw new Error('Integration tests require a dedicated _test database');
 const pool=getPool();after(()=>pool.end());
+
+async function admissionSetup(){await pool.query('TRUNCATE runs,sites CASCADE');await pool.query('DELETE FROM browser_compute_budget');await pool.query("UPDATE public_budget SET held=0,lifetime_spent=0,day_spent=0,day=(now() AT TIME ZONE 'UTC')::date,kill_switch=false WHERE id='public'");}
+async function verifiedSqlSite(owner:string,origin:string){return(await pool.query("INSERT INTO sites(owner_id,name,origin,environment,verification_token,verified_at,verification_method) VALUES($1,'Synthetic SQL proof state',$2,'staging','synthetic-proof-not-network-verified',now(),'file') RETURNING id",[owner,origin])).rows[0].id as string;}
+const admissionInput=(siteId:string,authorization=grant())=>({siteId,goal:'Explore an owned synthetic SQL target',writes:true,registration:true,rules:'Synthetic state only',authorization});
+
+test('public admission serializes cross-owner UI/API locks, pending principals, cancellation and resource-only origins',async()=>{
+  await admissionSetup();
+  const a=await verifiedSqlSite('queue-a','https://shared.example'),b=await verifiedSqlSite('queue-b','https://shared.example');
+  const admitted=await Promise.allSettled([admitVerifiedRun('queue-a',admissionInput(a),1),admitVerifiedRun('queue-b',admissionInput(b),1)]);
+  assert.equal(admitted.filter(r=>r.status==='fulfilled').length,1);assert.equal(admitted.filter(r=>r.status==='rejected'&&r.reason.message==='active_origin_busy').length,1);
+  const winner=(admitted.find(r=>r.status==='fulfilled') as PromiseFulfilledResult<any>).value;
+  assert.equal(winner.queue_position,1);assert.equal((await pool.query('SELECT count(*) FROM run_outbox')).rows[0].count,'1');assert.equal((await pool.query('SELECT count(*) FROM active_origin_locks')).rows[0].count,'1');
+  const other=await verifiedSqlSite(winner.owner_id,'https://other.example');await assert.rejects(admitVerifiedRun(winner.owner_id,admissionInput(other),1),/pending_run_already_exists/);
+  await assert.rejects(stopOwnedRun('foreign-owner',winner.id),/not_found/);assert.equal((await pool.query('SELECT status FROM runs WHERE id=$1',[winner.id])).rows[0].status,'queued');
+  await stopOwnedRun(winner.owner_id,winner.id);await stopOwnedRun(winner.owner_id,winner.id);assert.equal((await pool.query("SELECT held FROM public_budget WHERE id='public'")).rows[0].held,'0');assert.equal((await pool.query('SELECT count(*) FROM active_origin_locks')).rows[0].count,'0');
+  const owner=winner.owner_id==='queue-a'?'queue-b':'queue-a',site=owner==='queue-a'?a:b;
+  const next=await admitVerifiedRun(owner,admissionInput(site),1),third=await verifiedSqlSite('queue-c','https://third.example'),api=await verifiedSqlSite('queue-c','https://shared.example');
+  const apiGrant=grant();apiGrant.apiSites=[{siteId:api,methods:['GET','POST']}];await assert.rejects(admitVerifiedRun('queue-c',admissionInput(third,apiGrant),1),/active_origin_busy/);
+  const resourceGrant=grant();resourceGrant.resourceOrigins=['https://shared.example'];const resourceRun=await admitVerifiedRun('queue-c',admissionInput(third,resourceGrant),1);
+  assert.equal(resourceRun.queue_position,2);assert.deepEqual((await pool.query('SELECT origin FROM active_origin_locks WHERE run_id=$1',[resourceRun.id])).rows.map(r=>r.origin),['https://third.example']);
+  assert.equal((await pool.query("SELECT held FROM public_budget WHERE id='public'")).rows[0].held,'4000000');await stopOwnedRun(owner,next.id);await stopOwnedRun('queue-c',resourceRun.id);
+});
+
+test('queue limits, UTC quota and expiry refund atomically before any browser allocation or model call',async()=>{
+  await admissionSetup();const site=await verifiedSqlSite('limit-owner','https://limits.example');
+  await pool.query("INSERT INTO runs(owner_id,goal,scope,status,held_micros) SELECT 'pending-'||i,'Synthetic queue fill','{}','queued',0 FROM generate_series(1,20) i");
+  await assert.rejects(admitVerifiedRun('limit-owner',admissionInput(site),1),/queue_capacity_reached/);
+  await assert.rejects(transaction(async c=>{await c.query("SELECT id FROM public_budget WHERE id='public' FOR UPDATE");await checkPendingAdmission(c,'pending-1');}),/pending_run_already_exists/);
+  await pool.query("UPDATE runs SET queue_expires_at=now()-interval '1 second' WHERE status='queued'");assert.equal(await expireQueuedRuns(),20);assert.equal(await expireQueuedRuns(),0);
+  await pool.query("INSERT INTO runs(owner_id,goal,scope,status,held_micros) SELECT 'limit-owner','Synthetic used quota','{}','completed',0 FROM generate_series(1,3)");
+  await assert.rejects(admitVerifiedRun('limit-owner',admissionInput(site),1),/daily_run_quota_reached/);
+  await pool.query("UPDATE runs SET quota_refunded=true WHERE owner_id='limit-owner'");
+  const run=await admitVerifiedRun('limit-owner',admissionInput(site),1);await pool.query("UPDATE runs SET queue_expires_at=now()-interval '1 second' WHERE id=$1",[run.id]);
+  assert.equal(await claimQueuedRun(run.id,'expiry-worker'),null);const ended=(await pool.query('SELECT status,stop_reason,quota_refunded,held_micros,started_at FROM runs WHERE id=$1',[run.id])).rows[0];
+  assert.equal(ended.status,'blocked');assert.equal(ended.stop_reason,'queue_expired');assert.equal(ended.quota_refunded,true);assert.equal(ended.held_micros,'0');assert.equal(ended.started_at,null);assert.equal((await pool.query('SELECT count(*) FROM active_origin_locks')).rows[0].count,'0');
+  assert.equal((await pool.query("SELECT held FROM public_budget WHERE id='public'")).rows[0].held,'0');assert.equal((await pool.query('SELECT count(*) FROM browser_allocations')).rows[0].count,'0');assert.equal((await pool.query('SELECT count(*) FROM call_ledger')).rows[0].count,'0');
+  // Yesterday's spent bucket resets; outstanding reservations are retained.
+  await pool.query("UPDATE public_budget SET day=day-1,day_spent=6000000 WHERE id='public'");const fresh=await admitVerifiedRun('limit-owner',admissionInput(site),1);assert.equal((await pool.query("SELECT day_spent FROM public_budget WHERE id='public'")).rows[0].day_spent,'0');await stopOwnedRun('limit-owner',fresh.id);
+});
+
+test('competing claims honor FIFO and keep origin locks through stop and unconfirmed browser cleanup',async()=>{
+  await admissionSetup();const a=await verifiedSqlSite('fifo-a','https://fifo-a.example'),b=await verifiedSqlSite('fifo-b','https://fifo-b.example');
+  const first=await admitVerifiedRun('fifo-a',admissionInput(a),1),second=await admitVerifiedRun('fifo-b',admissionInput(b),1);
+  await assert.rejects(claimQueuedRun(second.id,'out-of-order-worker'),RunDeferredError);
+  const claims=await Promise.all([claimQueuedRun(first.id,'worker-a'),claimQueuedRun(first.id,'worker-b')]);assert.equal(claims.filter(Boolean).length,1);
+  await assert.rejects(claimQueuedRun(second.id,'worker-b'),RunDeferredError);
+  await pool.query("INSERT INTO browser_allocations(run_id,state,expires_at) VALUES($1,'unknown',now()+interval '15 minutes')",[first.id]);await stopOwnedRun('fifo-a',first.id);
+  assert.equal((await pool.query('SELECT count(*) FROM active_origin_locks WHERE run_id=$1',[first.id])).rows[0].count,'1');
+  await assert.rejects(pool.query("UPDATE runs SET status='stopped' WHERE id=$1",[first.id]),/browser_cleanup_unconfirmed/);await assert.rejects(claimQueuedRun(second.id,'worker-b'),RunDeferredError);
+  // Recorded provider absence for this SQL test, not an actual Fly deletion.
+  await pool.query("UPDATE browser_allocations SET state='released' WHERE run_id=$1",[first.id]);await releaseUnusedBudget(first.id);await pool.query("UPDATE runs SET status='stopped' WHERE id=$1",[first.id]);
+  assert.equal((await pool.query('SELECT count(*) FROM active_origin_locks WHERE run_id=$1',[first.id])).rows[0].count,'0');
+  const started=await claimQueuedRun(second.id,'worker-b');assert.equal(started.status,'provisioning');assert.equal(new Date(started.expires_at).getTime()-new Date(started.started_at).getTime(),900000);assert.equal((await pool.query('SELECT count(*) FROM runs WHERE status=\'provisioning\'')).rows[0].count,'1');
+  await releaseUnusedBudget(second.id);await pool.query("UPDATE runs SET status='blocked' WHERE id=$1",[second.id]);
+});
+
+test('two real PostgreSQL queue workers defer capacity without losing or repeating admitted execution',{timeout:45000},async()=>{
+  await admissionSetup();const a=await verifiedSqlSite('dispatch-a','https://dispatch-a.example'),b=await verifiedSqlSite('dispatch-b','https://dispatch-b.example');
+  const first=await admitVerifiedRun('dispatch-a',admissionInput(a),1),second=await admitVerifiedRun('dispatch-b',admissionInput(b),1);
+  const connection=process.env.DATABASE_URL!,name=`capacity-${randomUUID()}`,queue=new Queue(name,{connection},createPostgresBackend),effects=new Map<string,number>();let release!:()=>void,deferred=0;
+  const gate=new Promise<void>(resolve=>{release=resolve;});
+  const workers=['dispatch-worker-a','dispatch-worker-b'].map(workerId=>new Worker(name,async(job,token)=>runQueuedJob(job,token,async id=>{
+    let row;try{row=await claimQueuedRun(id,workerId);}catch(error){if(error instanceof RunDeferredError)deferred++;throw error;}if(!row)return;
+    if(id===first.id)await gate;effects.set(id,(effects.get(id)??0)+1);
+    await pool.query("UPDATE runs SET status='finalizing' WHERE id=$1",[id]);await releaseUnusedBudget(id);await pool.query("UPDATE runs SET status='completed',finished_at=now() WHERE id=$1",[id]);
+  }),{connection,concurrency:1},createPostgresBackend));
+  try{
+    await Promise.all(workers.map(w=>w.waitUntilReady()));const jobs=await Promise.all([first,second].map(r=>queue.add('synthetic-execution',{runId:r.id},{jobId:r.id,attempts:1})));
+    for(let i=0;i<200&&deferred===0;i++)await new Promise(r=>setTimeout(r,50));assert(deferred>0);assert.equal(effects.size,0);release();
+    for(let i=0;i<150;i++){if((await Promise.all(jobs.map(j=>j.getState()))).every(s=>s==='completed'))break;await new Promise(r=>setTimeout(r,50));}
+    assert.deepEqual(await Promise.all(jobs.map(j=>j.getState())),['completed','completed']);assert.deepEqual([...effects.values()],[1,1]);assert.equal((await pool.query('SELECT count(*) FROM active_origin_locks')).rows[0].count,'0');assert.equal((await pool.query("SELECT held FROM public_budget WHERE id='public'")).rows[0].held,'0');
+    assert.equal((await pool.query('SELECT count(*) FROM browser_allocations')).rows[0].count,'0');assert.equal((await pool.query('SELECT count(*) FROM call_ledger')).rows[0].count,'0');
+  }finally{release();await Promise.all(workers.map(w=>w.close()));await queue.obliterate({force:true});await queue.close();}
+});
 
 const computeQuote=():ComputeConfiguration=>({enabled:true,region:'sin',hourlyMicros:3600,overheadMicros:17,cleanupSeconds:120,limitMicros:100000,rateSource:'https://example.invalid/synthetic-rate',rateExpiresAt:new Date(Date.now()+3600000)});
 const computeRun=async()=>{const row=(await pool.query("INSERT INTO runs(owner_id,goal,scope,status,held_micros,lease_until,expires_at) VALUES('compute-test','Synthetic compute reservation','{}','provisioning',0,now()+interval '45 seconds',now()+interval '60 seconds') RETURNING id,expires_at")).rows[0];return{id:row.id as string,expiresAt:new Date(row.expires_at)};};
@@ -31,12 +112,12 @@ test('SQL reserves regional browser compute once under races and never resets ch
     await configureBrowserCompute({...computeQuote(),enabled:false});
     await settleBrowserCompute(winner.id);await settleBrowserCompute(winner.id);
     const balance=(await pool.query("SELECT held_micros,spent_micros FROM browser_compute_budget WHERE id='browser'")).rows[0];assert.equal(Number(balance.held_micros),0);assert.equal(Number(balance.spent_micros),held);
-    await pool.query("UPDATE runs SET status='blocked' WHERE id=$1",[winner.id]);
+    await pool.query("UPDATE browser_allocations SET state='released' WHERE run_id=$1",[winner.id]);await pool.query("UPDATE runs SET status='blocked' WHERE id=$1",[winner.id]);
     await configureBrowserCompute({...computeQuote(),limitMicros:held});await assert.rejects(reserveBrowserCompute(loser.id,1,'sin',loser.expiresAt),/compute_budget_exhausted/);
     assert.equal(Number((await pool.query("SELECT spent_micros FROM browser_compute_budget WHERE id='browser'")).rows[0].spent_micros),held);
     assert.equal((await pool.query('SELECT 1 FROM browser_allocations WHERE run_id=$1',[loser.id])).rowCount,0);
   }finally{
-    await pool.query('DELETE FROM browser_compute_reservations');await pool.query('DELETE FROM browser_compute_budget');await pool.query("UPDATE runs SET status='blocked' WHERE id=ANY($1::uuid[])",[[first.id,second.id]]);
+    await pool.query('DELETE FROM browser_compute_reservations');await pool.query('DELETE FROM browser_compute_budget');await pool.query("UPDATE browser_allocations SET state='released' WHERE run_id=ANY($1::uuid[])",[[first.id,second.id]]);await pool.query("UPDATE runs SET status='blocked' WHERE id=ANY($1::uuid[])",[[first.id,second.id]]);
   }
 });
 

@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-10-27T12:43:00.395Z",
+  "origin": "https://oddhound-chatgpt-preview.vercel.app",
+  "active_sessions": 1,
+  "last_session_created": "2026-10-27T12:41:27.978Z",
+  "github_accounts": 1,
+  "githubSessionRecorded": true,
+  "userConfirmedCallbackAndSignIn": true,
+  "modelInference": false,
+  "claims": "Actual hosted Better Auth GitHub account and unexpired session, plus the owner confirmation of callback update/sign-in. This SQL check does not expose identity, OAuth tokens, cookies or private session values."
+}

@@ -1,4 +1,4 @@
-import {Queue,Worker,createPostgresBackend} from 'bullmq';
+import {Queue,Worker,createPostgresBackend} from './queue';
 import {randomUUID} from 'node:crypto';
 import {getPool,event} from '@oddhound/db';
 import {releaseUnusedBudget} from '../../packages/db/budget';
@@ -10,6 +10,7 @@ import {runVerification} from './verification';
 import {abandonAssertionAttempt} from '../../packages/db/assertions';
 import {provision,destroy,runtimeConfigured,type BrowserRuntime} from './runtime';
 import {claimQueuedRun} from './claim';
+import {runQueuedJob} from './queued-job';
 
 const connection=process.env.DATABASE_URL;if(!connection)throw new Error('database_not_configured');
 const workerId=randomUUID(),pool=getPool(),queue=new Queue('oddhound-runs',{connection},createPostgresBackend);
@@ -51,13 +52,13 @@ async function processRun(id:string){
     }else{await pool.query("UPDATE runs SET stop_reason='machine_cleanup_unconfirmed',lease_until=NULL WHERE id=$1",[id]);await event(id,'browser.cleanup_pending','Machine deletion is unconfirmed. Capacity remains occupied.');}
   }
 }
-const worker=new Worker('oddhound-runs',async job=>processRun(job.data.runId),{connection,concurrency:1},createPostgresBackend);
+const worker=new Worker('oddhound-runs',async(job,token)=>runQueuedJob(job,token,processRun),{connection,concurrency:1},createPostgresBackend);
 worker.on('error',()=>console.error('Queue connection error; new execution waits for recovery.'));
 worker.on('failed',()=>console.error('A run job failed. Its lease and independent reaper retain cleanup responsibility.'));
 let dispatching=false;
 async function dispatch(){if(dispatching)return;dispatching=true;try{
   await pool.query('INSERT INTO worker_heartbeats(id) VALUES($1) ON CONFLICT(id) DO UPDATE SET last_seen=now()',[workerId]);
-  const pending=await pool.query('SELECT run_id FROM run_outbox WHERE delivered_at IS NULL ORDER BY created_at LIMIT 20');
+  const pending=await pool.query("SELECT o.run_id FROM run_outbox o JOIN runs r ON r.id=o.run_id WHERE o.delivered_at IS NULL AND r.status='queued' AND r.queue_expires_at>now() ORDER BY o.created_at,o.run_id LIMIT 20");
   for(const row of pending.rows){await queue.add('explore',{runId:row.run_id},{jobId:row.run_id,attempts:1,removeOnComplete:500,removeOnFail:500});await pool.query('UPDATE run_outbox SET delivered_at=now() WHERE run_id=$1',[row.run_id]);}
 }catch{console.error('Outbox dispatch unavailable; admitted runs remain durably queued.');}finally{dispatching=false;}}
 const interval=setInterval(()=>void dispatch(),1000);await dispatch();console.log('Oddhound PostgreSQL worker ready; no inference until a run is admitted.');

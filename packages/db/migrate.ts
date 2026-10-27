@@ -73,5 +73,28 @@ CREATE OR REPLACE FUNCTION oddhound_freeze_finding_rule() RETURNS trigger LANGUA
 IF EXISTS(SELECT 1 FROM finding_assertions WHERE finding_id=OLD.id) AND (NEW.rule IS DISTINCT FROM OLD.rule OR NEW.assertion_version IS DISTINCT FROM OLD.assertion_version OR NEW.run_id IS DISTINCT FROM OLD.run_id) THEN RAISE EXCEPTION 'finding_assertion_is_immutable' USING ERRCODE='23514'; END IF; RETURN NEW; END $$;
 DROP TRIGGER IF EXISTS freeze_finding_rule ON findings;
 CREATE TRIGGER freeze_finding_rule BEFORE UPDATE ON findings FOR EACH ROW EXECUTE FUNCTION oddhound_freeze_finding_rule();
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS queue_expires_at timestamptz;
+UPDATE runs SET queue_expires_at=created_at+interval '15 minutes' WHERE queue_expires_at IS NULL;
+ALTER TABLE runs ALTER COLUMN queue_expires_at SET DEFAULT (now()+interval '15 minutes');
+ALTER TABLE runs ALTER COLUMN queue_expires_at SET NOT NULL;
+CREATE TABLE IF NOT EXISTS active_origin_locks(origin text PRIMARY KEY,run_id uuid NOT NULL REFERENCES runs(id),created_at timestamptz NOT NULL DEFAULT now());
+DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='public_budget'::regclass AND conname='public_budget_nonnegative') THEN ALTER TABLE public_budget ADD CONSTRAINT public_budget_nonnegative CHECK(held>=0 AND lifetime_spent>=0 AND day_spent>=0); END IF; END $$;
+CREATE INDEX IF NOT EXISTS origin_locks_run ON active_origin_locks(run_id);
+CREATE OR REPLACE VIEW active_run_origins AS
+ SELECT r.id run_id,r.scope->>'origin' origin FROM runs r WHERE r.status IN ('queued','provisioning','running','waiting_for_input','stopping','finalizing') AND COALESCE(r.scope->>'labOnly','false')!='true' AND r.scope->>'origin' IS NOT NULL
+ UNION SELECT r.id,a->>'origin' FROM runs r CROSS JOIN LATERAL jsonb_array_elements(COALESCE(r.scope->'apiOrigins','[]'::jsonb)) a WHERE r.status IN ('queued','provisioning','running','waiting_for_input','stopping','finalizing') AND COALESCE(r.scope->>'labOnly','false')!='true' AND a->>'origin' IS NOT NULL;
+INSERT INTO active_origin_locks(origin,run_id) SELECT origin,run_id FROM active_run_origins ORDER BY origin COLLATE "C" ON CONFLICT(origin) DO NOTHING;
+DO $$ BEGIN IF EXISTS(SELECT 1 FROM active_run_origins a JOIN active_origin_locks l ON l.origin=a.origin WHERE a.run_id!=l.run_id) THEN RAISE EXCEPTION 'conflicting_existing_origin_locks'; END IF; END $$;
+CREATE OR REPLACE FUNCTION oddhound_terminal_resources_guard() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+ IF NEW.status IN ('completed','stopped','failed','blocked') AND NEW.status IS DISTINCT FROM OLD.status AND (
+ EXISTS(SELECT 1 FROM browser_machines WHERE run_id=NEW.id AND state!='terminated') OR
+ EXISTS(SELECT 1 FROM browser_allocations WHERE run_id=NEW.id AND state!='released') OR
+ EXISTS(SELECT 1 FROM browser_compute_reservations WHERE run_id=NEW.id AND state='held')) THEN RAISE EXCEPTION 'browser_cleanup_unconfirmed' USING ERRCODE='23514'; END IF; RETURN NEW; END $$;
+DROP TRIGGER IF EXISTS terminal_resources_guard ON runs;
+CREATE TRIGGER terminal_resources_guard BEFORE UPDATE OF status ON runs FOR EACH ROW EXECUTE FUNCTION oddhound_terminal_resources_guard();
+CREATE OR REPLACE FUNCTION oddhound_release_origin_locks() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+ IF NEW.status IN ('completed','stopped','failed','blocked') THEN DELETE FROM active_origin_locks WHERE run_id=NEW.id; END IF; RETURN NEW; END $$;
+DROP TRIGGER IF EXISTS release_origin_locks ON runs;
+CREATE TRIGGER release_origin_locks AFTER UPDATE OF status ON runs FOR EACH ROW EXECUTE FUNCTION oddhound_release_origin_locks();
 `);
 console.log('Oddhound application tables ready');await pool.end();

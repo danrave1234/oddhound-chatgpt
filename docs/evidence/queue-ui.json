@@ -1,0 +1,17 @@
+{
+  "stopReason": "user_cancelled",
+  "spentMicros": 0,
+  "passed": true,
+  "checkedAt": "2026-10-27T12:40:38.3086531Z",
+  "modelInference": false,
+  "beforeScreenshot": "docs/assets/queue-ui.png",
+  "turns": 0,
+  "runId": "5d471768-cb60-4c07-af3d-1a815bcff46f",
+  "cancelledViaUi": true,
+  "synthetic": true,
+  "actions": 0,
+  "claims": "Actual local queue UI and owner-bound cancellation HTTP path on an explicitly labelled synthetic SQL fixture. No live browser or model execution.",
+  "status": "stopped",
+  "browserExecution": false,
+  "afterScreenshot": "docs/assets/queue-ui-stopped.png"
+}

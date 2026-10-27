@@ -12,7 +12,7 @@ pwsh -NoProfile -File scripts/prepare-vercel.ps1
 vercel deploy --cwd data/vercel-source-<commit-prefix> --project oddhound-chatgpt --scope danrave1234s-projects --yes
 ```
 
-The [hosted HTTP proof](evidence/vercel-preview.json) records READY deployment `dpl_CsXwJFLiC31h1GfnmpzsZVdUyRza`, source commit `48c3656e9aacb771a69517af4def675b10da2a1e`, signed-out private-run refusal (401), the recorded replay (200), and the actual GitHub authorization redirect with the hosted callback. Full OAuth sign-in still needs the user's browser check with callback `https://oddhound-chatgpt-preview.vercel.app/api/auth/callback/github`. Vercel Authentication protection remains enabled. The proof uses the documented short-lived same-project OIDC header. A persistent automation bypass created by an earlier CLI diagnostic was revoked; it is not needed to use the preview. No browser job or inference is claimed by this HTTP check.
+The [hosted HTTP proof](evidence/vercel-preview.json) records READY deployment `dpl_CsXwJFLiC31h1GfnmpzsZVdUyRza`, source commit `48c3656e9aacb771a69517af4def675b10da2a1e`, signed-out private-run refusal (401), the recorded replay (200), and the actual GitHub authorization redirect with the hosted callback. The owner completed the callback update/sign-in; the actual hosted GitHub account and unexpired session are recorded in [session evidence](evidence/hosted-github-session.json). Vercel Authentication protection remains enabled. The proof uses the documented short-lived same-project OIDC header. A persistent automation bypass created by an earlier CLI diagnostic was revoked; it is not needed to use the preview. No browser job or inference is claimed by this HTTP check.
 
 ## Actual Fly result
 
