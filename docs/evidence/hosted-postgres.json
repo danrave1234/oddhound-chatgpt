@@ -1,0 +1,24 @@
+{
+  "createdAt": "2026-10-27T10:16:55.582Z",
+  "provider": "Neon",
+  "plan": "free_v3",
+  "region": "sin1",
+  "node": "v26.12.1",
+  "postgres": "18.6 (fd34222)",
+  "tls": {
+    "encrypted": true,
+    "authorized": true,
+    "protocol": "TLSv1.3",
+    "mode": "verify-full"
+  },
+  "backendSsl": {
+    "ssl": false,
+    "version": null
+  },
+  "directSessionConnection": true,
+  "migrationsPassed": true,
+  "integrationTestsPassed": true,
+  "tests": 10,
+  "modelInference": false,
+  "claims": "Actual hosted isolated _test database integration, including BullMQ PostgreSQL delivery and private artifact persistence. Client TLS is verified on the actual connection socket; backend pg_stat_ssl is recorded separately. No website scan, OAuth sign-in, public launch or complete release gate claim."
+}

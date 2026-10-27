@@ -1,6 +1,6 @@
 # Disposable browser service
 
-This implementation now runs real browser tools behind the selected gateway candidate. It has not been deployed on Fly or cleared for public active testing.
+This implementation runs real browser tools behind the selected gateway candidate. Fly startup, sandbox, private control and native-egress checks now pass; [the exact deployed evidence and remaining gates](HOSTED_EXECUTION.md) distinguish these checks from public active-testing clearance.
 
 The trusted controller creates the private control capability. The guest has no platform key or database connection. Its root supervisor starts smokescreen, the mitmproxy policy and nftables before launching Chromium as UID 1101 with its sandbox enabled. The Chrome launcher receives a clean environment and an exclusively owned temporary profile. Control is bound to the exact private address and admitted source addresses; neither readiness nor browser observations reveal its capability.
 

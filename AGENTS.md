@@ -2,6 +2,8 @@
 
 Keep all source, tests, evidence and notes for this implementation inside this folder. Parent owner specifications remain requirements; do not edit parent notes. Work independently; do not inspect or reference other implementations.
 
+Latest verified hosting slice: Fly sandbox/private-control/native-egress checks pass on pinned image 9b3cd659...; full runtime/reaper/resource/compute/public gates remain pending. The existing Vercel workspace is Hobby and its authenticated CLI works without the connector's extra workspace grant. Neon was provisioned on free_v3 in sin1; 10 hosted SQL integration tests pass with verified client TLS. Production artifacts default to private PostgreSQL binary storage; filesystem writes are local only. Read docs/HOSTED_EXECUTION.md. Current focused/local SQL results: 38/10. No extra Meta inference occurred in this slice.
+
 Latest hosting clarification: Drave uses Vercel for the Next.js web app. Fly is not a frontend prerequisite. Drave selected Fly for the separate browser/worker backend and authenticated its CLI; do not move the Next.js frontend there. The explicit local owned-demo profile may run locally while hosted execution remains closed.
 
 Drave subsequently selected Fly for that backend and authenticated the installed CLI. Apps `oddhound-chatgpt-worker` and `oddhound-chatgpt-browser` now exist, and the pinned local browser image was uploaded. These are setup facts, not a passing deployed runtime. Preserve the Next.js/Vercel frontend split. The actual connected local UI flow is documented in docs/CONNECTED_MVP.md; its three completed runs are real execution, not mocks.

@@ -1,6 +1,6 @@
 import {Queue,Worker,createPostgresBackend} from 'bullmq';
 import {randomUUID} from 'node:crypto';
-import {getPool,event,transaction} from '@oddhound/db';
+import {getPool,event} from '@oddhound/db';
 import {releaseUnusedBudget} from '../../packages/db/budget';
 import {scrub,unseal} from '../../packages/db/vault';
 import {checkOwnership} from '../web/lib/ownership';
@@ -9,11 +9,12 @@ import {runExploration} from './exploration';
 import {runVerification} from './verification';
 import {abandonAssertionAttempt} from '../../packages/db/assertions';
 import {provision,destroy,runtimeConfigured,type BrowserRuntime} from './runtime';
+import {claimQueuedRun} from './claim';
 
 const connection=process.env.DATABASE_URL;if(!connection)throw new Error('database_not_configured');
 const workerId=randomUUID(),pool=getPool(),queue=new Queue('oddhound-runs',{connection},createPostgresBackend);
 async function processRun(id:string){
-  const row=await transaction(async c=>{await c.query("SELECT id FROM public_budget WHERE id='public' FOR UPDATE");return(await c.query("UPDATE runs SET status='provisioning',lease_owner=$2,lease_until=now()+interval '45 seconds',started_at=now(),expires_at=now()+interval '15 minutes' WHERE id=$1 AND status='queued' RETURNING *",[id,workerId])).rows[0];});
+  const row=await claimQueuedRun(id,workerId);
   if(!row)return;
   const controller=new AbortController(),signal=controller.signal,generation=row.generation;
   let reason:string|null=null,completed=false,activeBrowser:BrowserRuntime|undefined;

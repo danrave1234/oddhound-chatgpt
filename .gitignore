@@ -3,8 +3,8 @@ node_modules/
 **/dist/
 **/__pycache__/
 .pnpm-store/
-.env
-.env.*
+.vercel/
+.env*
 !.env.example
 *.tsbuildinfo
 data/

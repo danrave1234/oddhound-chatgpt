@@ -1,0 +1,67 @@
+{
+  "cleanupConfirmed": true,
+  "region": "sin",
+  "siteNavigation": false,
+  "image": "registry.fly.io/oddhound-chatgpt-browser@sha256:9b3cd6594a805543937fa461eae397e60a25441f68607ad18b16f7f8de3fb4fd",
+  "startedAt": "2026-10-27T10:01:21.6418286Z",
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tNo\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "profile": "gateway-sandbox-v1",
+  "noPublicServices": true,
+  "modelInference": false,
+  "finishedAt": "2026-10-27T10:03:21.5215004Z",
+  "privateControl": true,
+  "passed": true,
+  "runId": "6173dbf3-5b57-4b5b-a237-db0d9fd020b1",
+  "claims": "Deployed startup/private-control/sandbox component evidence only. No initialization, navigation, website scan, model call or complete runtime/public gate claim. Probe Machines are destroyed afterward.",
+  "platformEnvironment": {
+    "forbiddenNames": []
+  },
+  "noPersistentMounts": true,
+  "lastControlResult": "private_control_failed",
+  "untrustedSourceDenied": true,
+  "nativeEgress": {
+    "uid": 1101,
+    "checks": [
+      {
+        "name": "loopback_proxy",
+        "connected": true,
+        "expected": true
+      },
+      {
+        "name": "other_loopback",
+        "connected": false,
+        "expected": false
+      },
+      {
+        "name": "metadata",
+        "connected": false,
+        "expected": false
+      },
+      {
+        "name": "private_v4",
+        "connected": false,
+        "expected": false
+      },
+      {
+        "name": "direct_public",
+        "connected": false,
+        "expected": false
+      },
+      {
+        "name": "browser_control",
+        "connected": false,
+        "expected": false
+      },
+      {
+        "name": "controller_6pn",
+        "connected": false,
+        "expected": false
+      }
+    ]
+  }
+}

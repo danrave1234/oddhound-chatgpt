@@ -1,0 +1,13 @@
+.git/
+.vercel/
+node_modules/
+**/node_modules/
+**/.next*/
+.pnpm-store/
+data
+data/**
+test-results/
+.env*
+*.log
+*.tsbuildinfo
+**/__pycache__/

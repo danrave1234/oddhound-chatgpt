@@ -1,0 +1,70 @@
+{
+  "region": "sin",
+  "errorLine": 100,
+  "errorType": "RuntimeException",
+  "modelInference": false,
+  "passed": false,
+  "profile": "gateway-sandbox-v1",
+  "noPublicServices": false,
+  "siteNavigation": false,
+  "platformEnvironment": {
+    "forbiddenNames": []
+  },
+  "claims": "Deployed startup/private-control/sandbox component evidence only. No initialization, navigation, website scan, model call or complete runtime/public gate claim. Probe Machines are destroyed afterward.",
+  "noPersistentMounts": true,
+  "privateControl": true,
+  "runId": "311bbae0-5efb-4bc8-9c10-4f5065418212",
+  "nativeEgress": {
+    "uid": 1101,
+    "checks": [
+      {
+        "name": "loopback_proxy",
+        "connected": true,
+        "expected": true
+      },
+      {
+        "name": "other_loopback",
+        "connected": false,
+        "expected": false
+      },
+      {
+        "name": "metadata",
+        "connected": false,
+        "expected": false
+      },
+      {
+        "name": "private_v4",
+        "connected": false,
+        "expected": false
+      },
+      {
+        "name": "direct_public",
+        "connected": false,
+        "expected": false
+      },
+      {
+        "name": "browser_control",
+        "connected": false,
+        "expected": false
+      },
+      {
+        "name": "controller_6pn",
+        "connected": false,
+        "expected": false
+      }
+    ]
+  },
+  "cleanupConfirmed": true,
+  "lastControlResult": "private_control_failed",
+  "error": "private_disposable_config_failed",
+  "startedAt": "2026-10-27T09:58:29.1877210Z",
+  "image": "registry.fly.io/oddhound-chatgpt-browser@sha256:9b3cd6594a805543937fa461eae397e60a25441f68607ad18b16f7f8de3fb4fd",
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tNo\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "finishedAt": "2026-10-27T10:00:34.7849307Z",
+  "untrustedSourceDenied": true
+}

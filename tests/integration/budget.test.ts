@@ -4,8 +4,45 @@ import {reserveCall,settleCall,unknownCall,releaseUnusedBudget,admitAction} from
 import {changeCredential,revokeSiteProof} from '../../packages/db/revocation';import {randomBytes} from 'node:crypto';
 import {freezeAssertion,assertionDetail,loadAssertionTask,finishAssertionAttempt,abandonAssertionAttempt} from '../../packages/db/assertions';import {assertionHash,evaluateRecordEvidence} from '@oddhound/checks';import {numericAssertion} from '../../apps/fixture/assertion';
 import {startOwnedDemo,claimOwnedDemo,finishOwnedDemo,localDemoEnabled} from '../../apps/web/lib/owned-demo';
+import {saveObservation,readArtifact} from '../../packages/db/artifacts';import {createHash} from 'node:crypto';
+import {eventDataProjection,readEvent} from '../../packages/db/events';
+import {claimQueuedRun} from '../../apps/worker/claim';
 if(!new URL(process.env.DATABASE_URL??'postgres://invalid').pathname.endsWith('_test'))throw new Error('Integration tests require a dedicated _test database');
 const pool=getPool();after(()=>pool.end());
+
+test('the production queue claim honors the kill switch, refunds unstarted work and claims only once',async()=>{
+  await pool.query("UPDATE public_budget SET held=2000000,kill_switch=true WHERE id='public'");
+  const id=(await pool.query("INSERT INTO runs(owner_id,goal,scope,status) VALUES('claim-owner','Synthetic killed claim','{}','queued') RETURNING id")).rows[0].id;
+  assert.equal(await claimQueuedRun(id,'worker-a'),null);const blocked=(await pool.query('SELECT status,held_micros,quota_refunded,generation FROM runs WHERE id=$1',[id])).rows[0];assert.equal(blocked.status,'blocked');assert.equal(Number(blocked.held_micros),0);assert.equal(blocked.quota_refunded,true);assert.equal(blocked.generation,2);assert.equal((await pool.query("SELECT held FROM public_budget WHERE id='public'")).rows[0].held,'0');
+  await pool.query("UPDATE public_budget SET kill_switch=false WHERE id='public'");const next=(await pool.query("INSERT INTO runs(owner_id,goal,scope,status,held_micros) VALUES('claim-owner','Synthetic competing claim','{}','queued',0) RETURNING id")).rows[0].id;
+  const claims=await Promise.all([claimQueuedRun(next,'worker-a'),claimQueuedRun(next,'worker-b')]);assert.equal(claims.filter(Boolean).length,1);assert.equal((claims.find(Boolean) as any).status,'provisioning');await pool.query("UPDATE runs SET status='blocked' WHERE id=$1",[next]);
+});
+
+test('timeline queries bound repeated page data while preserving owner-only original observations',async()=>{
+  const run=(await pool.query("INSERT INTO runs(owner_id,goal,scope,status,held_micros) VALUES('event-owner','Synthetic event bound','{}','completed',0) RETURNING id")).rows[0].id;
+  const data={url:'https://owned.example/',title:'Synthetic state',text:'x'.repeat(24000),controls:Array.from({length:100},(_,i)=>({target:`c${i}`,role:'button',name:'Synthetic control'})),artifactId:'00000000-0000-4000-8000-000000000001'};
+  await pool.query("INSERT INTO run_events(run_id,kind,message,data) SELECT $1,'browser.action','Synthetic saved event',$2 FROM generate_series(1,250)",[run,data]);
+  const summaries=(await pool.query(`SELECT id,${eventDataProjection} data FROM run_events WHERE run_id=$1 ORDER BY id`,[run])).rows;
+  assert.equal(summaries.length,250);assert(Buffer.byteLength(JSON.stringify(summaries))<100000);assert.equal(summaries[0].data.artifactId,data.artifactId);assert.equal(summaries[0].data.detailsAvailable,true);assert(!('controls' in summaries[0].data));
+  const id=Number(summaries[0].id);assert.deepEqual((await readEvent('event-owner',run,id)).data,data);await assert.rejects(readEvent('foreign-owner',run,id),/not_found/);
+  await pool.query("UPDATE run_events SET data=jsonb_build_object('legacy','x'::text||repeat('x',131072)) WHERE id=$1",[id]);await assert.rejects(readEvent('event-owner',run,id),/event_data_limit/);
+});
+
+test('private PostgreSQL screenshots survive separate reads and enforce ownership, integrity and atomic byte limits',async()=>{
+  const saved={NODE_ENV:process.env.NODE_ENV,ODDHOUND_ARTIFACT_STORAGE:process.env.ODDHOUND_ARTIFACT_STORAGE};
+  const bytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2e8AAAAASUVORK5CYII=','base64'),sha256=createHash('sha256').update(bytes).digest('hex');
+  const raw={url:'https://owned.example/',title:'Synthetic PNG',text:'Synthetic metadata',controls:[],screenshot:{mediaType:'image/png',base64:bytes.toString('base64'),sha256}};
+  try{
+    (process.env as Record<string,string|undefined>).NODE_ENV='production';process.env.ODDHOUND_ARTIFACT_STORAGE='postgres';
+    const run=(await pool.query("INSERT INTO runs(owner_id,goal,scope,status,held_micros) VALUES('artifact-owner','Synthetic artifact check','{}','completed',0) RETURNING id")).rows[0].id;
+    const value=await saveObservation(run,raw);assert(!value.screenshot);assert(value.artifactId);assert.deepEqual(await readArtifact('artifact-owner',value.artifactId),bytes);await assert.rejects(readArtifact('other-owner',value.artifactId),/not_found/);
+    await pool.query('UPDATE artifact_content SET content=$2 WHERE artifact_id=$1',[value.artifactId,Buffer.concat([bytes,Buffer.from('tamper')])]);await assert.rejects(readArtifact('artifact-owner',value.artifactId),/artifact_integrity_failed/);
+    process.env.ODDHOUND_ARTIFACT_STORAGE='filesystem';await assert.rejects(saveObservation(run,raw),/durable_artifact_storage_required/);process.env.ODDHOUND_ARTIFACT_STORAGE='postgres';
+    await pool.query('UPDATE artifacts SET bytes=$2 WHERE id=$1',[value.artifactId,100*1024*1024-bytes.length]);
+    const competing=await Promise.allSettled([saveObservation(run,raw),saveObservation(run,raw)]);assert.equal(competing.filter(r=>r.status==='fulfilled').length,1);assert.equal(competing.filter(r=>r.status==='rejected'&&/artifact_budget_exhausted/.test(r.reason.message)).length,1);
+    await pool.query('DELETE FROM artifacts WHERE run_id=$1',[run]);assert.equal((await pool.query('SELECT 1 FROM artifact_content WHERE artifact_id=$1',[value.artifactId])).rowCount,0);
+  }finally{for(const [key,value] of Object.entries(saved)){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
+});
 
 test('owned-demo admission requires a live local runner, atomically reserves funds and never replays a lost claim',async()=>{
   const saved={NODE_ENV:process.env.NODE_ENV,ODDHOUND_LOCAL_WORKSPACE:process.env.ODDHOUND_LOCAL_WORKSPACE,ODDHOUND_ENABLE_PAID_LAB:process.env.ODDHOUND_ENABLE_PAID_LAB,ODDHOUND_DEVELOPMENT_MODEL_ALLOCATION_USD:process.env.ODDHOUND_DEVELOPMENT_MODEL_ALLOCATION_USD,META_API_KEY:process.env.META_API_KEY};
@@ -16,6 +53,7 @@ test('owned-demo admission requires a live local runner, atomically reserves fun
     await assert.rejects(startOwnedDemo(),/owned_demo_runner_offline/);assert.equal(await claimOwnedDemo(),null);
     const competing=await Promise.allSettled([startOwnedDemo(),startOwnedDemo()]);assert.equal(competing.filter(r=>r.status==='fulfilled').length,1);const id=(competing.find(r=>r.status==='fulfilled') as PromiseFulfilledResult<string>).value;
     assert.equal(Number((await pool.query("SELECT held_micros FROM model_funds WHERE id='development'")).rows[0].held_micros),2000000);
+    await pool.query("UPDATE public_budget SET kill_switch=true WHERE id='public'");assert.equal(await claimOwnedDemo(),null);assert.equal((await pool.query('SELECT status FROM runs WHERE id=$1',[id])).rows[0].status,'queued');await pool.query("UPDATE public_budget SET kill_switch=false WHERE id='public'");
     const job=await claimOwnedDemo();assert.equal(job!.id,id);assert.equal(job!.kind,'explore');assert.equal(await claimOwnedDemo(),null);assert(!JSON.stringify(job).includes('RUN_PATH'));
     await pool.query("UPDATE runs SET status='stopping',stop_reason='user_cancelled',generation=generation+1 WHERE id=$1",[id]);const cleanup=await claimOwnedDemo();assert.equal(cleanup!.kind,'cleanup');await finishOwnedDemo(id,1);
     assert.equal((await pool.query('SELECT status FROM runs WHERE id=$1',[id])).rows[0].status,'stopped');assert.equal(Number((await pool.query("SELECT held_micros FROM model_funds WHERE id='development'")).rows[0].held_micros),0);assert.equal((await pool.query('SELECT 1 FROM call_ledger WHERE run_id=$1',[id])).rowCount,0);

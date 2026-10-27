@@ -1,0 +1,14 @@
+{
+  "claims": "Deployed startup/private-control/sandbox component evidence only. No initialization, navigation, website scan, model call or complete runtime/public gate claim. Probe Machines are destroyed afterward.",
+  "startedAt": "2026-10-27T09:23:14.0566621Z",
+  "siteNavigation": false,
+  "error": "fly_startup_failed",
+  "runId": "30051cef-01aa-4c9d-8e61-4affe1d9ec78",
+  "image": "registry.fly.io/oddhound-chatgpt-browser@sha256:ff2d1972f23ce953d7728001b17343cd4554959e46d1982d1dd08ad46f494bf8",
+  "region": "sin",
+  "modelInference": false,
+  "cleanupConfirmed": false,
+  "finishedAt": "2026-10-27T09:23:29.8072040Z",
+  "profile": "gateway-sandbox-v1",
+  "passed": false
+}

@@ -15,6 +15,7 @@ async function fly(path:string,method='GET',body?:unknown){
   if(response.status===404)return null;const raw=await response.text();if(raw.length>1024*1024)throw new Error('fly_response_too_large');return raw?JSON.parse(raw):null;
 }
 export function runtimeConfigured(){return Boolean(process.env.FLY_API_TOKEN&&process.env.ODDHOUND_BROWSER_APP&&process.env.ODDHOUND_BROWSER_IMAGE&&process.env.ODDHOUND_RUNTIME_GATE_FILE&&process.env.ODDHOUND_VAULT_KEY);}
+export function cleanupConfigured(env:Record<string,string|undefined>=process.env){const value=env.ODDHOUND_BROWSER_APP??'';return Boolean(env.FLY_API_TOKEN&&/^[a-z][a-z0-9-]{2,62}$/.test(value)&&value!==env.FLY_APP_NAME);}
 export function guestRunScope(scope:unknown,expiresAt:Date){if(!scope||typeof scope!=='object'||Array.isArray(scope))throw new Error('invalid_browser_scope');return browserScope.parse({...scope,expiresAt:expiresAt.toISOString()});}
 export async function runtimeGate(){
   const image=process.env.ODDHOUND_BROWSER_IMAGE??'';if(!/^.+@sha256:[a-f0-9]{64}$/.test(image))throw new Error('browser_image_digest_required');
@@ -25,6 +26,10 @@ export async function runtimeGate(){
   return image;
 }
 function app(){const value=process.env.ODDHOUND_BROWSER_APP??'';if(!/^[a-z][a-z0-9-]{2,62}$/.test(value)||value===process.env.FLY_APP_NAME)throw new Error('separate_browser_app_required');return value;}
+export function trustedControlSources(env:Record<string,string|undefined>=process.env){
+  const sources=env.ODDHOUND_TRUSTED_WEB_IPS?.split(',')??(env.FLY_APP_NAME&&env.FLY_APP_NAME!==env.ODDHOUND_BROWSER_APP&&env.FLY_PRIVATE_IP?[env.FLY_PRIVATE_IP]:[]);
+  if(!sources.length||sources.some(v=>isIP(v)!==6||!v.startsWith('fdaa:')))throw new Error('trusted_control_sources_required');return sources;
+}
 export class BrowserRuntime{
   constructor(readonly runId:string,private address:string,private path:string,private signal:AbortSignal){}
   async call<T>(method:string,data:unknown={},signal=this.signal):Promise<T>{
@@ -40,7 +45,7 @@ export class BrowserRuntime{
 }
 export async function provision(runId:string,scope:unknown,expiresAt:Date,signal:AbortSignal){
   const image=await runtimeGate(),browserApp=app(),path=randomBytes(32).toString('hex'),runScope=guestRunScope(scope,expiresAt);
-  const sources=process.env.ODDHOUND_TRUSTED_WEB_IPS?.split(',')??[];if(!sources.length||sources.some(v=>isIP(v)!==6||!v.startsWith('fdaa:')))throw new Error('trusted_control_sources_required');
+  const sources=trustedControlSources();
   // Region/rate/compute headroom must be supplied before any paid Machine creation.
   if(!(Number(process.env.ODDHOUND_COMPUTE_PER_RUN_USD)>0)||!(Number(process.env.ODDHOUND_COMPUTE_AVAILABLE_USD)>=Number(process.env.ODDHOUND_COMPUTE_PER_RUN_USD)))throw new Error('compute_budget_not_configured');
   await getPool().query("INSERT INTO browser_allocations(run_id,state,expires_at) VALUES($1,'sent',$2)",[runId,expiresAt]);

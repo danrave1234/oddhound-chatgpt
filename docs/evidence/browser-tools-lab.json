@@ -1,9 +1,9 @@
 {
-  "runId": "a1c2829d-7493-48cf-8968-44cc5b4875e9",
+  "runId": "f295c02b-41fe-40ce-95a5-dcdecaf9d978",
   "profile": "owned-lab-v1",
   "modelInference": false,
   "scripted": true,
-  "startedAt": "2026-10-27T07:42:00.229Z",
+  "startedAt": "2026-10-27T10:13:04.128Z",
   "checks": [
     "actual_nonroot_chromium_sandbox",
     "live_page_discovery",
@@ -33,6 +33,6 @@
     "controls": 5
   },
   "passed": true,
-  "finishedAt": "2026-10-27T07:42:41.186Z",
+  "finishedAt": "2026-10-27T10:13:41.532Z",
   "claims": "Owned local component execution only; no Fly deployment, public-site clearance or autonomous discovery claim."
 }

@@ -1,7 +1,7 @@
 {
-  "runId": "0f7cec6e-2fa4-4611-af93-7be4a3333263",
+  "runId": "26050ffa-e6b7-425c-9dc4-6489a216d7f6",
   "profile": "owned-lab-v1",
-  "startedAt": "2026-10-27T07:45:07.860Z",
+  "startedAt": "2026-10-27T10:18:12.018Z",
   "scripted": true,
   "modelInference": false,
   "checks": [
@@ -25,37 +25,37 @@
   },
   "arrivals": [
     {
-      "nonce": "0f7cec6e-2fa4-4611-af93-7be4a3333263_api-foreign_preflight",
+      "nonce": "26050ffa-e6b7-425c-9dc4-6489a216d7f6_api-foreign_preflight",
       "origin": "https://fixture-corrected-lab:3002",
       "path": "/_lab/create",
       "method": "OPTIONS"
     },
     {
-      "nonce": "0f7cec6e-2fa4-4611-af93-7be4a3333263_api-good",
+      "nonce": "26050ffa-e6b7-425c-9dc4-6489a216d7f6_api-good",
       "origin": "https://fixture-corrected-lab:3002",
       "path": "/_lab/create",
       "method": "POST"
     },
     {
-      "nonce": "0f7cec6e-2fa4-4611-af93-7be4a3333263_api-good_preflight",
+      "nonce": "26050ffa-e6b7-425c-9dc4-6489a216d7f6_api-good_preflight",
       "origin": "https://fixture-corrected-lab:3002",
       "path": "/_lab/create",
       "method": "OPTIONS"
     },
     {
-      "nonce": "0f7cec6e-2fa4-4611-af93-7be4a3333263_cancel",
+      "nonce": "26050ffa-e6b7-425c-9dc4-6489a216d7f6_cancel",
       "origin": "https://fixture-lab:3002",
       "path": "/_lab/records/owned-1/cancel",
       "method": "POST"
     },
     {
-      "nonce": "0f7cec6e-2fa4-4611-af93-7be4a3333263_create",
+      "nonce": "26050ffa-e6b7-425c-9dc4-6489a216d7f6_create",
       "origin": "https://fixture-lab:3002",
       "path": "/_lab/create",
       "method": "POST"
     },
     {
-      "nonce": "0f7cec6e-2fa4-4611-af93-7be4a3333263_register-one",
+      "nonce": "26050ffa-e6b7-425c-9dc4-6489a216d7f6_register-one",
       "origin": "https://fixture-lab:3002",
       "path": "/_lab/register",
       "method": "POST"
@@ -63,6 +63,6 @@
   ],
   "passed": true,
   "closed": true,
-  "finishedAt": "2026-10-27T07:46:13.227Z",
+  "finishedAt": "2026-10-27T10:19:15.199Z",
   "claims": "Owned local mapped-policy component only. No deployed or complete SELF clearance; credential/application business semantics and broad staging grants need their remaining proofs."
 }

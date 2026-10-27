@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS assertion_retests(id uuid PRIMARY KEY DEFAULT gen_ran
 CREATE TABLE IF NOT EXISTS worker_heartbeats(id text PRIMARY KEY,last_seen timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS browser_allocations(run_id uuid PRIMARY KEY REFERENCES runs(id),state text NOT NULL,expires_at timestamptz NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),cleanup_error text);
 ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS state text NOT NULL DEFAULT 'ready' CHECK(state IN ('staged','ready'));
+ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS storage_backend text NOT NULL DEFAULT 'filesystem' CHECK(storage_backend IN ('filesystem','postgres'));
+CREATE TABLE IF NOT EXISTS artifact_content(artifact_id uuid PRIMARY KEY REFERENCES artifacts(id) ON DELETE CASCADE,content bytea NOT NULL CHECK(octet_length(content) BETWEEN 33 AND 1048576));
 ALTER TABLE runs ADD COLUMN IF NOT EXISTS funding_account text NOT NULL DEFAULT 'public' CHECK(funding_account IN ('public','development','judge'));
 ALTER TABLE action_ledger ADD COLUMN IF NOT EXISTS action jsonb;
 CREATE TABLE IF NOT EXISTS model_funds(id text PRIMARY KEY CHECK(id IN ('development','judge')),limit_micros bigint NOT NULL CHECK(limit_micros>=0),spent_micros bigint NOT NULL DEFAULT 0 CHECK(spent_micros>=0),held_micros bigint NOT NULL DEFAULT 0 CHECK(held_micros>=0),CHECK(spent_micros+held_micros<=limit_micros),CHECK((id='development' AND limit_micros<=85000000) OR (id='judge' AND limit_micros<=15000000)));

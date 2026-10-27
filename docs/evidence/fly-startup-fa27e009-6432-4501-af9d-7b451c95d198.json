@@ -1,0 +1,17 @@
+{
+  "runId": "fa27e009-6432-4501-af9d-7b451c95d198",
+  "region": "sin",
+  "image": "registry.fly.io/oddhound-chatgpt-browser@sha256:ff2d1972f23ce953d7728001b17343cd4554959e46d1982d1dd08ad46f494bf8",
+  "finishedAt": "2026-10-27T09:51:13.9733460Z",
+  "errorType": "RuntimeException",
+  "lastControlResult": "private_control_timeout",
+  "passed": false,
+  "profile": "gateway-sandbox-v1",
+  "error": "deployed_sandbox_or_control_not_ready",
+  "claims": "Deployed startup/private-control/sandbox component evidence only. No initialization, navigation, website scan, model call or complete runtime/public gate claim. Probe Machines are destroyed afterward.",
+  "modelInference": false,
+  "errorLine": 75,
+  "startedAt": "2026-10-27T09:49:27.8348591Z",
+  "cleanupConfirmed": true,
+  "siteNavigation": false
+}

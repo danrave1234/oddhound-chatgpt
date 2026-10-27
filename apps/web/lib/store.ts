@@ -8,6 +8,7 @@ import { authConfigured, identity } from './auth';
 import { canonicalOrigin, checkOwnership } from './ownership';
 import {releaseFunding} from '../../../packages/db/budget';
 import {compileRunAuthorization} from '../../../packages/db/run-authorization';
+import {eventDataProjection} from '../../../packages/db/events';
 
 const iso=(v:Date|string|null)=>v?new Date(v).toISOString():null;
 const site=(r:Record<string,any>):Site=>({id:r.id,name:r.name,origin:r.origin,environment:r.environment,revision:r.revision,verifiedAt:iso(r.verified_at),createdAt:iso(r.created_at)!});
@@ -55,7 +56,7 @@ export async function createRun(owner:string,input:RunInput,assertionTask?:{find
 export async function runDetail(owner:string,id:string){
   const pool=getPool(),r=(await pool.query('SELECT r.*,s.name site_name,s.origin FROM runs r LEFT JOIN sites s ON s.id=r.site_id WHERE r.id=$1 AND r.owner_id=$2',[id,owner])).rows[0];if(!r)throw new Error('not_found');
   const [events,findings]=await Promise.all([
-    pool.query('SELECT * FROM run_events WHERE run_id=$1 ORDER BY id LIMIT 1000',[id]),
+    pool.query(`SELECT id,run_id,kind,message,created_at,${eventDataProjection} data FROM run_events WHERE run_id=$1 ORDER BY id LIMIT 1000`,[id]),
     pool.query(`SELECT f.*,a.spec frozen_assertion,(SELECT jsonb_agg(x) FROM (SELECT status,purpose,assertion_hash,run_id,evidence,created_at FROM assertion_retests WHERE finding_id=f.id ORDER BY created_at DESC,id DESC LIMIT 20) x) assertion_attempts
       FROM findings f JOIN runs source ON source.id=f.run_id LEFT JOIN finding_assertions a ON a.finding_id=f.id WHERE (f.run_id=$1 OR f.id=$2::uuid) AND source.owner_id=$3 ORDER BY f.created_at`,[id,r.scope.assertionTask?.findingId??null,owner]),
   ]);
