@@ -5,6 +5,7 @@
     "dev": "pnpm --filter @oddhound/web dev",
     "build": "pnpm --filter @oddhound/web build",
     "typecheck": "tsc --noEmit",
+    "check:policy": "node scripts/check-policy.mjs",
     "test": "tsx --test tests/*.test.ts",
     "db:migrate": "tsx packages/db/migrate.ts && tsx apps/web/lib/migrate-auth.ts && tsx apps/worker/migrate.ts",
     "worker": "tsx apps/worker/main.ts",
@@ -12,5 +13,5 @@
     "test:integration": "tsx --test tests/integration/*.test.ts",
     "audit:deps": "pnpm audit --audit-level=high"
   },
-  "devDependencies": { "typescript": "5.9.3", "tsx": "4.20.6", "@types/node": "24.10.0", "@types/react": "19.2.2", "@types/react-dom": "19.2.2", "@types/pg": "8.15.5" }
+  "devDependencies": { "esbuild": "0.25.12", "typescript": "5.9.3", "tsx": "4.20.6", "@types/node": "24.10.0", "@types/react": "19.2.2", "@types/react-dom": "19.2.2", "@types/pg": "8.15.5" }
 }

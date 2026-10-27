@@ -1,0 +1,3 @@
+import {randomBytes,randomUUID} from 'node:crypto';import {mkdir,writeFile} from 'node:fs/promises';
+const runId=randomUUID(),prefix=`lab_${randomBytes(5).toString('hex')}`,scope={origin:'https://fixture-lab:3002',writes:true,registration:true,registrationPrefix:prefix,deniedPaths:['/forbidden'],apiOrigins:[],resourceOrigins:[],expiresAt:new Date(Date.now()+15*60*1000).toISOString()};
+await mkdir('data',{recursive:true});await writeFile('data/browser-lab.env',`ODDHOUND_RUN_ID=${runId}\nODDHOUND_RUN_PATH=${randomBytes(32).toString('hex')}\nODDHOUND_SCOPE=${JSON.stringify(scope)}\n`);await writeFile('data/browser-lab-run.json',JSON.stringify({runId,prefix,scope},null,2)+'\n');console.log(JSON.stringify({runId,profile:'owned-lab-v1',expiresAt:scope.expiresAt}));

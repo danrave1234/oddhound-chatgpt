@@ -1,5 +1,7 @@
 node_modules/
 **/.next*/
+**/dist/
+**/__pycache__/
 .pnpm-store/
 .env
 .env.*

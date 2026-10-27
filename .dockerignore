@@ -6,3 +6,5 @@ test-results
 .env*
 !.env.example
 .git
+.pnpm-store
+**/dist

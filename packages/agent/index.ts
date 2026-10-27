@@ -1,19 +1,12 @@
 import { z } from 'zod';
+import {browserAction} from '@oddhound/contracts';
 
 export const MODEL='muse-spark-1.3';
 export const ENDPOINT='https://api.meta.ai/v1/chat/completions';
 export type ToolCall={id:string;type:'function';function:{name:string;arguments:string}};
 export type Message={role:'system'|'user'|'assistant'|'tool';content:unknown;tool_calls?:ToolCall[];tool_call_id?:string};
 export type Usage={prompt_tokens:number;completion_tokens:number;total_tokens:number};
-export const action=z.discriminatedUnion('name',[
-  z.object({name:z.literal('navigate'),url:z.string().url()}),
-  z.object({name:z.literal('click'),target:z.string().min(1).max(200)}),
-  z.object({name:z.literal('fill'),target:z.string().min(1).max(200),value:z.string().max(1000)}),
-  z.object({name:z.literal('credential_fill'),target:z.string().min(1).max(200),reference:z.string().regex(/^[a-z0-9_.-]{1,80}$/)}),
-  z.object({name:z.literal('press'),key:z.enum(['Enter','Tab','Escape','ArrowDown','ArrowUp'])}),
-  z.object({name:z.literal('observe')}),
-  z.object({name:z.literal('finish_run'),summary:z.string().max(4000),candidates:z.array(z.object({title:z.string().max(180),rule:z.string().max(1000),observation:z.string().max(2000)})).max(20)})
-]);
+export const action=browserAction;
 export type Action=z.infer<typeof action>;
 const functionTool=(name:string,description:string,properties:Record<string,unknown>,required:string[]=[])=>({type:'function',function:{name,description,parameters:{type:'object',properties,required,additionalProperties:false}}});
 export const tools=[
@@ -21,6 +14,10 @@ export const tools=[
   functionTool('click','Click a control listed in the latest observation. Use its exact target.',{target:{type:'string'}},['target']),
   functionTool('fill','Fill a non-secret field. Use credential_fill for account credentials.',{target:{type:'string'},value:{type:'string'}},['target','value']),
   functionTool('credential_fill','Resolve a supplied credential reference without seeing its value.',{target:{type:'string'},reference:{type:'string'}},['target','reference']),
+  functionTool('select_option','Select an option shown in an observed select control.',{target:{type:'string'},value:{type:'string'}},['target','value']),
+  functionTool('prepare_identity','Prepare one synthetic identity in the approved namespace. Returns credential references, never a password.',{}),
+  functionTool('switch_actor','Switch to a fresh, isolated role context. Account references remain scoped to that role.',{actor:{type:'string',enum:['primary','secondary']}},['actor']),
+  functionTool('set_device','Use a fresh device context; previous sessions in this role are discarded.',{profile:{type:'string',enum:['desktop','mobile']}},['profile']),
   functionTool('press','Press a supported key in the current page.',{key:{type:'string',enum:['Enter','Tab','Escape','ArrowDown','ArrowUp']}},['key']),
   functionTool('observe','Get the current page, sanitized text and actionable controls.',{}),
   functionTool('finish_run','Finish exploration. Report observations as candidates; verification is independent.',{summary:{type:'string'},candidates:{type:'array',items:{type:'object',properties:{title:{type:'string'},rule:{type:'string'},observation:{type:'string'}},required:['title','rule','observation'],additionalProperties:false}}},['summary','candidates'])

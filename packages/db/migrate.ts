@@ -35,5 +35,6 @@ CREATE TABLE IF NOT EXISTS artifacts(id uuid PRIMARY KEY DEFAULT gen_random_uuid
 CREATE TABLE IF NOT EXISTS assertion_retests(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),finding_id uuid NOT NULL REFERENCES findings(id),assertion_version text NOT NULL,assertion_hash text NOT NULL,status text NOT NULL CHECK(status IN ('not_run','passed','failed','blocked','inconclusive','skipped')),evidence jsonb NOT NULL DEFAULT '{}',created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS worker_heartbeats(id text PRIMARY KEY,last_seen timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS browser_allocations(run_id uuid PRIMARY KEY REFERENCES runs(id),state text NOT NULL,expires_at timestamptz NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),cleanup_error text);
+ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS state text NOT NULL DEFAULT 'ready' CHECK(state IN ('staged','ready'));
 `);
 console.log('Oddhound application tables ready');await pool.end();

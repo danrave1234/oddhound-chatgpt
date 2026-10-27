@@ -1,7 +1,7 @@
 import {MetaAdapter,estimatedMicros,parseAction,systemPrompt,type Message,type Action,type Usage} from '@oddhound/agent';
-import {limits} from '@oddhound/contracts';
+import {limits,type BrowserObservation} from '@oddhound/contracts';
 
-export type Observation={url:string;title:string;text:string;controls:{target:string;role:string;name:string}[];artifactId?:string;blocked?:string};
+export type Observation=BrowserObservation;
 export type EngineScope={origin:string;goal:string;rules:string;writes:boolean;registration:boolean;references:string[]};
 export type EngineDependencies={
   model:Pick<MetaAdapter,'complete'>; signal:AbortSignal;
@@ -12,10 +12,10 @@ export type EngineDependencies={
   record:(kind:string,message:string,data?:Record<string,unknown>)=>Promise<void>;
   findings:(candidates:{title:string;rule:string;observation:string}[])=>Promise<void>;
 };
-function boundedObservation(value:Observation,sanitize:(s:string)=>string){const text=JSON.stringify(value);if(Buffer.byteLength(text)>64000)throw new Error('observation_limit_exceeded');return sanitize(text);}
+function boundedObservation(value:Observation,sanitize:(s:string)=>string){const text=JSON.stringify(value);if(Buffer.byteLength(text)>64000)throw new Error('observation_limit_exceeded');return sanitize(text).replaceAll('<','\\u003c').replaceAll('>','\\u003e');}
 export async function explore(scope:EngineScope,d:EngineDependencies){
   const initial=await d.observe();
-  const messages:Message[]=[{role:'system',content:systemPrompt(scope.origin,scope.goal,scope.rules)+`\nAUTHORIZED CAPABILITIES: ${JSON.stringify({writes:scope.writes,registration:scope.registration,credentialReferences:scope.references})}`},{role:'user',content:`Begin exploratory testing.\n<untrusted_observation>${boundedObservation(initial,d.sanitize)}</untrusted_observation>`}];
+  const messages:Message[]=[{role:'system',content:systemPrompt(scope.origin,d.sanitize(scope.goal),d.sanitize(scope.rules))+`\nAUTHORIZED CAPABILITIES: ${JSON.stringify({writes:scope.writes,registration:scope.registration,credentialReferences:scope.references})}`},{role:'user',content:`Begin exploratory testing.\n<untrusted_observation>${boundedObservation(initial,d.sanitize)}</untrusted_observation>`}];
   let actions=0;
   for(let turn=0;turn<limits.turns;turn++){
     d.signal.throwIfAborted();await d.checkFence();
@@ -38,7 +38,7 @@ export async function explore(scope:EngineScope,d:EngineDependencies){
         if(actions>=limits.actions)throw new Error('action_limit_reached');
         const observation=await d.execute(action,`${turn+1}-${i+1}`);actions++;
         result=`<untrusted_observation>${boundedObservation(observation,d.sanitize)}</untrusted_observation>`;
-      }catch(error){const code=(error as Error).message;if(['run_fenced','run_expired','action_limit_reached'].includes(code))throw error;result=JSON.stringify({error:/^[a-z0-9_]+$/.test(code)?code:'action_failed'});}
+      }catch(error){const code=(error as Error).message;if(['run_fenced','run_expired','action_limit_reached','action_outcome_unknown','network_budget_exhausted','artifact_budget_exhausted','browser_control_failed','browser_connection_lost','browser_response_limit','invalid_screenshot','screenshot_digest_mismatch','artifact_integrity_failed'].includes(code))throw error;result=JSON.stringify({error:/^[a-z0-9_]+$/.test(code)?code:'action_failed'});}
       messages.push({role:'tool',tool_call_id:call.id,content:result});
     }
   }

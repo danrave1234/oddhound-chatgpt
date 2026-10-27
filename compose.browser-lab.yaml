@@ -1,0 +1,62 @@
+# Owned, internal-only fixture profile. Production refuses this profile on Fly.
+services:
+  dns-lab:
+    image: oddhound-product-browser:development
+    entrypoint: [python3, /lab/dns.py]
+    volumes: ["./apps/fixture/lab-dns.py:/lab/dns.py:ro"]
+    networks:
+      browser-lab: {ipv4_address: 172.30.73.53}
+  fixture-lab:
+    build: {context: ., dockerfile: Dockerfile.dev}
+    working_dir: /workspace
+    volumes: ["./apps/fixture:/workspace/apps/fixture:ro", "dependencies:/workspace/node_modules:ro", "./data/lab-tls:/opt/lab-certs:ro"]
+    environment:
+      FIXTURE_DATABASE_URL: postgres://oddhound_fixture:local-fixture-only@db:5432/oddhound_fixture
+      FIXTURE_ORIGIN: https://fixture-lab:3002
+      FIXTURE_TLS_CERT: /opt/lab-certs/cert.pem
+      FIXTURE_TLS_KEY: /opt/lab-certs/key.pem
+      FIXTURE_CORRECTED: "0"
+    command: [sh, -c, "node /workspace/node_modules/tsx/dist/cli.mjs apps/fixture/migrate.ts && node /workspace/node_modules/tsx/dist/cli.mjs apps/fixture/server.ts"]
+    networks:
+      default: {}
+      browser-lab: {ipv4_address: 172.30.73.20}
+  fixture-corrected-lab:
+    extends: {service: fixture-lab}
+    environment:
+      FIXTURE_ORIGIN: https://fixture-corrected-lab:3002
+      FIXTURE_CORRECTED: "1"
+    networks:
+      default: {}
+      browser-lab: {ipv4_address: 172.30.73.21}
+  browser-lab:
+    image: oddhound-product-browser:development
+    env_file: data/browser-lab.env
+    environment:
+      ODDHOUND_BROWSER_PROFILE: owned-lab-v1
+      ODDHOUND_CONTROL_ADDRESS: 172.30.73.30
+      ODDHOUND_TRUSTED_WEB_IPS: 172.30.73.10
+      ODDHOUND_LAB_DESTINATIONS: 172.30.73.20:3002,172.30.73.21:3002
+    volumes: ["./data/lab-tls/cert.pem:/opt/lab-certs/cert.pem:ro"]
+    cap_add: [NET_ADMIN]
+    security_opt: ["seccomp=apps/browser/seccomp.json"]
+    shm_size: 256mb
+    networks:
+      browser-lab: {ipv4_address: 172.30.73.30}
+  browser-lab-controller:
+    build: {context: ., dockerfile: Dockerfile.dev}
+    working_dir: /workspace
+    volumes: [".:/workspace", "dependencies:/workspace/node_modules"]
+    environment:
+      DATABASE_URL: postgres://oddhound:local-development-only@db:5432/oddhound
+      FIXTURE_DATABASE_URL: postgres://oddhound_fixture:local-fixture-only@db:5432/oddhound_fixture
+      ODDHOUND_ARTIFACT_DIRECTORY: /workspace/data/artifacts
+    env_file: data/browser-lab.env
+    command: [pnpm, exec, tsx, apps/worker/lab-check.ts]
+    networks:
+      default: {}
+      browser-lab: {ipv4_address: 172.30.73.10}
+networks:
+  browser-lab:
+    internal: true
+    ipam:
+      config: [{subnet: 172.30.73.0/24}]

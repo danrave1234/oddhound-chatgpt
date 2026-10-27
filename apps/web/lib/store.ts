@@ -8,7 +8,7 @@ import { canonicalOrigin, checkOwnership } from './ownership';
 
 const iso=(v:Date|string|null)=>v?new Date(v).toISOString():null;
 const site=(r:Record<string,any>):Site=>({id:r.id,name:r.name,origin:r.origin,environment:r.environment,revision:r.revision,verifiedAt:iso(r.verified_at),createdAt:iso(r.created_at)!});
-const run=(r:Record<string,any>):Run=>({id:r.id,siteId:r.site_id,siteName:r.site_name??'Demo target',origin:r.origin??r.scope.origin,goal:r.goal,status:r.status,stopReason:r.stop_reason,createdAt:iso(r.created_at)!,startedAt:iso(r.started_at),finishedAt:iso(r.finished_at),actions:r.actions,turns:r.turns,spentMicros:Number(r.spent_micros),kind:r.scope.kind??'verified_site'});
+const run=(r:Record<string,any>):Run=>({id:r.id,siteId:r.site_id,siteName:r.site_name??r.scope.siteName??'Demo target',origin:r.origin??r.scope.origin,goal:r.goal,status:r.status,stopReason:r.stop_reason,createdAt:iso(r.created_at)!,startedAt:iso(r.started_at),finishedAt:iso(r.finished_at),actions:r.actions,turns:r.turns,spentMicros:Number(r.spent_micros),kind:r.scope.kind??'verified_site'});
 export async function workspace():Promise<Workspace>{
   const actor=await identity();const availability={database:false,github:authConfigured(),meta:Boolean(process.env.META_API_KEY),browser:runtimeConfigured(),publicLaunch:process.env.ODDHOUND_PUBLIC_LAUNCH_ENABLED==='1'};
   try{const pool=getPool();await pool.query('SELECT 1');availability.database=true;if(!actor)return{identity:null,sites:[],runs:[],remainingRuns:3,availability};

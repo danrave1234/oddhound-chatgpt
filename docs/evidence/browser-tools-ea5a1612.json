@@ -1,0 +1,20 @@
+{
+  "runId": "ea5a1612-9cf9-4a3b-a195-41d31ab6494b",
+  "profile": "owned-lab-v1",
+  "modelInference": false,
+  "scripted": true,
+  "startedAt": "2026-10-27T04:34:46.817Z",
+  "checks": [
+    "actual_nonroot_chromium_sandbox"
+  ],
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "error": "The expression evaluated to a falsy value:\n\n  assert(observed.controls.some(c=>c.role==='link'))\n",
+  "passed": false,
+  "finishedAt": "2026-10-27T04:34:47.383Z",
+  "claims": "Owned local component execution only; no Fly deployment, public-site clearance or autonomous discovery claim."
+}

@@ -1,0 +1,4 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {sandboxVerdict} from '../apps/browser/sandbox';
+const current='Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nYou are adequately sandboxed.';
+test('actual Chromium 156 status labels establish non-root namespace and seccomp protection',()=>{assert.equal(sandboxVerdict(1101,'156.0.8078.4',current).enabled,true);assert.equal(sandboxVerdict(1101,'older',current.replace('Layer 1 Sandbox\tNamespace','Namespace sandbox\tYes')).enabled,true);});
+test('root, missing namespaces and disabled seccomp cannot produce a passing verdict',()=>{assert.equal(sandboxVerdict(0,'156',current).enabled,false);for(const line of ['PID namespaces','Network namespaces','Seccomp-BPF sandbox'])assert.equal(sandboxVerdict(1101,'156',current.replace(line+'\tYes',line+'\tNo')).enabled,false);});

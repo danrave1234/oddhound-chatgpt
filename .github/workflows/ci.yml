@@ -27,7 +27,33 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate
       - run: pnpm typecheck
+      - run: pnpm check:policy
       - run: pnpm test
       - run: pnpm test:integration
       - run: pnpm build
       - run: pnpm audit:deps
+  browser-tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: docker compose run --rm setup
+      - run: docker compose run --rm setup pnpm exec tsx apps/fixture/bootstrap.ts
+      - run: docker build --file apps/browser/Dockerfile --tag oddhound-product-browser:development .
+      - name: Create owned HTTPS fixture certificate
+        run: |
+          mkdir -p data/lab-tls
+          docker run --rm --network none --mount "type=bind,source=$PWD/data/lab-tls,target=/out" --entrypoint openssl oddhound-product-browser:development req -x509 -newkey rsa:2048 -nodes -days 2 -keyout /out/key.pem -out /out/cert.pem -subj /CN=OddhoundOwnedLab -addext 'basicConstraints=critical,CA:TRUE' -addext 'subjectAltName=DNS:fixture-lab,DNS:fixture-corrected-lab'
+      - run: docker compose run --rm setup pnpm exec tsx apps/browser/lab-prepare.ts
+      - run: docker compose -f compose.yaml -f compose.browser-lab.yaml up -d dns-lab fixture-lab fixture-corrected-lab browser-lab
+      - run: docker compose -f compose.yaml -f compose.browser-lab.yaml run --rm browser-lab-controller
+      - name: Show bounded component evidence
+        if: always()
+        run: |
+          test ! -f docs/evidence/browser-tools-lab.json || cat docs/evidence/browser-tools-lab.json
+          docker compose -f compose.yaml -f compose.browser-lab.yaml logs --tail 20 browser-lab
+      - name: Stop this job's containers
+        if: always()
+        run: docker compose -f compose.yaml -f compose.browser-lab.yaml down

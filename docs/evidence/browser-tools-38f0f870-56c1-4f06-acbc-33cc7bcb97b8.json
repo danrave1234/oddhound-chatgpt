@@ -1,0 +1,32 @@
+{
+  "runId": "38f0f870-56c1-4f06-acbc-33cc7bcb97b8",
+  "profile": "owned-lab-v1",
+  "modelInference": false,
+  "scripted": true,
+  "startedAt": "2026-10-27T04:47:30.288Z",
+  "checks": [
+    "actual_nonroot_chromium_sandbox",
+    "live_page_discovery",
+    "private_screenshot_and_tenant_boundary",
+    "other_ui_origin_refused",
+    "generated_credential_references_and_pixel_suppression",
+    "real_registration_without_seeded_login",
+    "real_login",
+    "approved_create_confirmed_by_independent_sql",
+    "approved_edit_and_cancel_confirmed_by_independent_sql",
+    "unexpected_boundary_write_reaches_real_backing_store",
+    "fresh_actor_and_cross_actor_credential_refusal",
+    "fresh_mobile_context_and_cross_context_capture_suppression",
+    "prepared_identity_cap",
+    "stop_closes_browser"
+  ],
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "passed": true,
+  "finishedAt": "2026-10-27T04:48:02.632Z",
+  "claims": "Owned local component execution only; no Fly deployment, public-site clearance or autonomous discovery claim."
+}

@@ -1,6 +1,6 @@
 {
   "name": "@oddhound/web", "private": true, "type": "module",
-  "scripts": { "dev": "next dev --hostname 0.0.0.0 --port 3000", "build": "next build", "start": "next start --hostname 0.0.0.0 --port 3000" },
+  "scripts": { "dev": "next dev --webpack --hostname 0.0.0.0 --port 3000", "build": "next build", "start": "next start --hostname 0.0.0.0 --port 3000" },
   "dependencies": {
     "next": "16.4.3", "react": "19.3.1", "react-dom": "19.3.1", "@primer/octicons-react": "19.42.0",
     "@oddhound/contracts": "workspace:*", "@oddhound/db": "workspace:*", "@oddhound/agent": "workspace:*", "@oddhound/ui": "workspace:*",

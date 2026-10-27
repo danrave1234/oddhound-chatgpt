@@ -5,6 +5,7 @@ import {getPool} from '@oddhound/db';
 import {seal} from '../../packages/db/vault';
 import type {Action} from '@oddhound/agent';
 import type {Observation} from './engine';
+import {browserObservation,browserScope} from '@oddhound/contracts';
 
 type Machine={id:string;private_ip:string;state:string;config:{metadata?:Record<string,string>}};
 async function fly(path:string,method='GET',body?:unknown){
@@ -25,25 +26,25 @@ export async function runtimeGate(){
 function app(){const value=process.env.ODDHOUND_BROWSER_APP??'';if(!/^[a-z][a-z0-9-]{2,62}$/.test(value)||value===process.env.FLY_APP_NAME)throw new Error('separate_browser_app_required');return value;}
 export class BrowserRuntime{
   constructor(readonly runId:string,private address:string,private path:string,private signal:AbortSignal){}
-  async call<T>(method:string,data:unknown={}):Promise<T>{
+  async call<T>(method:string,data:unknown={},signal=this.signal):Promise<T>{
     if(!isIP(this.address)||!this.address.toLowerCase().startsWith('fdaa:'))throw new Error('invalid_private_control_address');
-    const response=await fetch(`http://[${this.address}]:3001/${this.path}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.any([this.signal,AbortSignal.timeout(20000)]),redirect:'error'});
-    if(!response.ok)throw new Error('browser_control_failed');
+    let response:Response;try{response=await fetch(`http://[${this.address}]:3001/${this.path}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.any([signal,AbortSignal.timeout(20000)]),redirect:'error'});}catch{throw new Error(signal.aborted?'run_fenced':'browser_connection_lost');}
     const reader=response.body?.getReader();if(!reader)throw new Error('browser_response_missing');let size=0;const chunks:Uint8Array[]=[];
-    for(;;){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>1024*1024){await reader.cancel();throw new Error('browser_response_limit');}chunks.push(value);}
-    return JSON.parse(Buffer.concat(chunks).toString('utf8')) as T;
+    for(;;){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>2*1024*1024){await reader.cancel();throw new Error('browser_response_limit');}chunks.push(value);}
+    const value=JSON.parse(Buffer.concat(chunks).toString('utf8'));if(!response.ok)throw new Error(typeof value.error==='string'&&/^[a-z0-9_]{1,80}$/.test(value.error)?value.error:'browser_control_failed');return value as T;
   }
-  observe(){return this.call<Observation>('observe');}
-  execute(action:Exclude<Action,{name:'finish_run'}>,key:string){return this.call<Observation>('action',{action,key});}
+  async observe(){return browserObservation.parse(await this.call<Observation>('observe'));}
+  async execute(action:Exclude<Action,{name:'finish_run'}>,key:string){return browserObservation.parse(await this.call<Observation>('action',{action,key}));}
+  requestStop(){return this.call<{closed:boolean}>('stop',{},AbortSignal.timeout(4500));}
 }
 export async function provision(runId:string,scope:unknown,expiresAt:Date,signal:AbortSignal){
-  const image=await runtimeGate(),browserApp=app(),path=randomBytes(32).toString('hex');
+  const image=await runtimeGate(),browserApp=app(),path=randomBytes(32).toString('hex'),runScope=browserScope.parse(scope);
   const sources=process.env.ODDHOUND_TRUSTED_WEB_IPS?.split(',')??[];if(!sources.length||sources.some(v=>isIP(v)!==6||!v.startsWith('fdaa:')))throw new Error('trusted_control_sources_required');
   // Region/rate/compute headroom must be supplied before any paid Machine creation.
   if(!(Number(process.env.ODDHOUND_COMPUTE_PER_RUN_USD)>0)||!(Number(process.env.ODDHOUND_COMPUTE_AVAILABLE_USD)>=Number(process.env.ODDHOUND_COMPUTE_PER_RUN_USD)))throw new Error('compute_budget_not_configured');
   await getPool().query("INSERT INTO browser_allocations(run_id,state,expires_at) VALUES($1,'sent',$2)",[runId,expiresAt]);
   let machine:Machine;
-  try{machine=await fly(`/apps/${browserApp}/machines`,'POST',{name:`run-${runId.slice(0,8)}`,region:process.env.ODDHOUND_FLY_REGION??'sin',config:{image,auto_destroy:true,restart:{policy:'no'},guest:{cpu_kind:'shared',cpus:1,memory_mb:2048},metadata:{oddhound_run_id:runId,oddhound_expires_at:expiresAt.toISOString()},env:{ODDHOUND_RUN_ID:runId,ODDHOUND_RUN_PATH:path,ODDHOUND_EXPIRES_AT:expiresAt.toISOString(),ODDHOUND_TRUSTED_WEB_IPS:sources.join(','),ODDHOUND_SCOPE:JSON.stringify(scope)},services:[]}});}catch(error){await getPool().query("UPDATE browser_allocations SET state='unknown' WHERE run_id=$1",[runId]);throw error;}
+  try{machine=await fly(`/apps/${browserApp}/machines`,'POST',{name:`run-${runId.slice(0,8)}`,region:process.env.ODDHOUND_FLY_REGION??'sin',config:{image,auto_destroy:true,restart:{policy:'no'},guest:{cpu_kind:'shared',cpus:1,memory_mb:2048},metadata:{oddhound_run_id:runId,oddhound_expires_at:expiresAt.toISOString()},env:{ODDHOUND_RUN_ID:runId,ODDHOUND_RUN_PATH:path,ODDHOUND_EXPIRES_AT:expiresAt.toISOString(),ODDHOUND_TRUSTED_WEB_IPS:sources.join(','),ODDHOUND_SCOPE:JSON.stringify(runScope)},services:[]}});}catch(error){await getPool().query("UPDATE browser_allocations SET state='unknown' WHERE run_id=$1",[runId]);throw error;}
   if(!machine?.id||!machine.private_ip)throw new Error('invalid_machine_response');
   await getPool().query("INSERT INTO browser_machines(run_id,machine_id,app,image,private_ip,control_cipher,state,expires_at) VALUES($1,$2,$3,$4,$5,$6,'provisioning',$7)",[runId,machine.id,browserApp,image,machine.private_ip,seal(path,runId),expiresAt]);
   await getPool().query("UPDATE browser_allocations SET state='known' WHERE run_id=$1",[runId]);

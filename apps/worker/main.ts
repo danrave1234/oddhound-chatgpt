@@ -7,7 +7,8 @@ import {reserveCall,settleCall,unknownCall,releaseUnusedBudget,admitAction,actio
 import {scrub,unseal} from '../../packages/db/vault';
 import {checkOwnership} from '../web/lib/ownership';
 import {explore} from './engine';
-import {provision,destroy,runtimeConfigured} from './runtime';
+import {saveObservation} from '../../packages/db/artifacts';
+import {provision,destroy,runtimeConfigured,type BrowserRuntime} from './runtime';
 
 const connection=process.env.DATABASE_URL;if(!connection)throw new Error('database_not_configured');
 const workerId=randomUUID(),pool=getPool(),queue=new Queue('oddhound-runs',{connection},createPostgresBackend);
@@ -15,7 +16,7 @@ async function processRun(id:string){
   const row=await transaction(async c=>{await c.query("SELECT id FROM public_budget WHERE id='public' FOR UPDATE");return(await c.query("UPDATE runs SET status='provisioning',lease_owner=$2,lease_until=now()+interval '45 seconds',started_at=now(),expires_at=now()+interval '15 minutes' WHERE id=$1 AND status='queued' RETURNING *",[id,workerId])).rows[0];});
   if(!row)return;
   const controller=new AbortController(),signal=controller.signal,generation=row.generation;
-  let reason:string|null=null,completed=false;
+  let reason:string|null=null,completed=false,activeBrowser:BrowserRuntime|undefined;
   const fence=async()=>{signal.throwIfAborted();const r=(await pool.query("SELECT r.status,r.generation,r.expires_at,b.kill_switch FROM runs r CROSS JOIN public_budget b WHERE r.id=$1 AND b.id='public'",[id])).rows[0];if(!r||r.generation!==generation||!['provisioning','running'].includes(r.status)||r.kill_switch)throw new Error('run_fenced');if(new Date(r.expires_at).getTime()<=Date.now())throw new Error('run_expired');};
   let heartbeatBusy=false;
   const timer=setInterval(()=>{if(heartbeatBusy)return;heartbeatBusy=true;void fence().then(()=>pool.query("UPDATE runs SET lease_until=now()+interval '45 seconds' WHERE id=$1 AND lease_owner=$2 AND generation=$3",[id,workerId,generation])).catch(e=>controller.abort(e)).finally(()=>{heartbeatBusy=false;});},1000);
@@ -29,21 +30,21 @@ async function processRun(id:string){
     await checkOwnership(site.origin,site.verification_token,site.verification_method);await fence();
     const credentials=(await pool.query('SELECT reference,secret_cipher FROM credentials WHERE site_id=$1 AND owner_id=$2',[site.id,row.owner_id])).rows;
     const values=credentials.map(c=>({reference:c.reference,value:unseal(c.secret_cipher,`${row.owner_id}:${site.id}:${c.reference}`)}));
-    const sanitize=(text:string)=>scrub(text,values.map(c=>c.value));
-    const browser=await provision(id,{...row.scope,expiresAt:row.expires_at},new Date(row.expires_at),signal);
+    const sanitize=(text:string)=>scrub(text,[...values.map(c=>c.value),...['META_API_KEY','FLY_API_TOKEN','BETTER_AUTH_SECRET','DATABASE_URL','ODDHOUND_VAULT_KEY','GITHUB_CLIENT_SECRET'].map(k=>process.env[k]??'')]);
+    const browser=await provision(id,{...row.scope,expiresAt:row.expires_at},new Date(row.expires_at),signal);activeBrowser=browser;
     await browser.call('initialize',{credentials:values});await fence();
     await pool.query("UPDATE runs SET status='running' WHERE id=$1 AND generation=$2",[id,generation]);await event(id,'run.running','Ownership rechecked. The isolated browser is exploring.');
-    const observation=async()=>{await fence();return browser.observe();};
+    const observation=async()=>{await fence();const value=await saveObservation(id,await browser.observe());await event(id,'browser.observation','Browser state captured.',value);return value;};
     await explore({origin:site.origin,goal:row.goal,rules:row.scope.rules,writes:row.scope.writes,registration:row.scope.registration,references:values.map(c=>c.reference)},{model:new MetaAdapter(process.env.META_API_KEY),signal,inputPrice,outputPrice,
-      reserve:bound=>reserveCall(id,generation,bound),settle:(call,actual,usage)=>settleCall(id,call,actual,usage),unknown:call=>unknownCall(id,call),checkFence:fence,sanitize,
+      reserve:bound=>reserveCall(id,generation,bound),settle:(call,actual,usage)=>settleCall(id,call,actual,usage),unknown:call=>unknownCall(id,call),checkFence:async()=>{await fence();await browser.call('ready');},sanitize,
       observe:observation,
-      execute:async(action,key)=>{await new Promise<void>((resolve,reject)=>{const timer=setTimeout(resolve,1050);signal.addEventListener('abort',()=>{clearTimeout(timer);reject(signal.reason);},{once:true});});await admitAction(id,generation,key);await fence();const result=await browser.execute(action,key);const clean=JSON.parse(sanitize(JSON.stringify(result)));await actionResult(id,key,clean);await event(id,'browser.action',`Browser action observed: ${action.name}.`,{action:action.name,key,...clean});return clean;},
+      execute:async(action,key)=>{await new Promise<void>((resolve,reject)=>{const timer=setTimeout(resolve,1050);signal.addEventListener('abort',()=>{clearTimeout(timer);reject(signal.reason);},{once:true});});await admitAction(id,generation,key);await fence();try{const result=await saveObservation(id,await browser.execute(action,key));const clean=JSON.parse(sanitize(JSON.stringify(result)));await actionResult(id,key,clean);await event(id,'browser.action',`Browser action observed: ${action.name}.`,{action:action.name,key,...clean});return clean;}catch(error){const code=(error as Error).message;const refused=['stale_or_unknown_target','frame_action_refused','credential_reference_required','credential_scope_refused','registration_namespace_required','registration_identity_limit','action_rate_limited','tool_scope_refused','browser_busy'];if(refused.includes(code)){await actionResult(id,key,{refused:code});throw error;}await event(id,'action.outcome_unknown','The browser action outcome is uncertain. Exploration is fenced; the action will not be retried.',{key});throw new Error('action_outcome_unknown');}},
       record:(kind,message,data)=>event(id,kind,sanitize(message),data),
       findings:async candidates=>{for(const c of candidates){const version=createHash('sha256').update(c.rule).digest('hex');await pool.query("INSERT INTO findings(run_id,title,status,category,severity,rule,observed,evidence,assertion_version) VALUES($1,$2,'candidate','needs_review','info',$3,$4,$5,$6)",[id,c.title,c.rule,c.observation,{source:'meta_candidate',independentlyVerified:false},version]);}}
     });completed=true;
   }catch(error){const message=(error as Error)?.message??'';reason=signal.aborted?(signal.reason?.message??'run_fenced'):/^[a-z0-9_]+$/.test(message)?message:'execution_failed';await event(id,'run.execution_ended','Exploration ended.',{reason});}
   finally{
-    clearInterval(timer);controller.abort(new Error('run_finalizing'));
+    clearInterval(timer);controller.abort(new Error('run_finalizing'));if(activeBrowser)try{await activeBrowser.requestStop();}catch{await event(id,'browser.close_unconfirmed','Browser close acknowledgement was not received; Machine destruction will be checked separately.');}
     await pool.query("UPDATE runs SET status='finalizing',generation=generation+1 WHERE id=$1",[id]);
     const removed=await destroy(id);await releaseUnusedBudget(id);
     if(removed){const stopped=(await pool.query('SELECT stop_reason FROM runs WHERE id=$1',[id])).rows[0].stop_reason==='user_cancelled';const status=stopped?'stopped':completed?'completed':reason==='execution_failed'?'failed':'blocked';

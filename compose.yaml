@@ -9,6 +9,7 @@ x-runtime: &runtime
     ODDHOUND_LOCAL_WORKSPACE: "1"
     ODDHOUND_ARTIFACT_DIRECTORY: /workspace/data/artifacts
     NEXT_TELEMETRY_DISABLED: "1"
+    WATCHPACK_POLLING: "true"
   depends_on:
     db: { condition: service_healthy }
 services:
@@ -39,21 +40,23 @@ services:
   fixture:
     restart: unless-stopped
     <<: *runtime
+    volumes: ["./apps/fixture:/workspace/apps/fixture:ro", "dependencies:/workspace/node_modules:ro"]
     environment:
       FIXTURE_DATABASE_URL: postgres://oddhound_fixture:local-fixture-only@db:5432/oddhound_fixture
       FIXTURE_ORIGIN: http://localhost:3002
       FIXTURE_CORRECTED: "0"
     ports: ["127.0.0.1:3002:3002"]
-    command: [sh, -c, "pnpm --filter @oddhound/fixture migrate && pnpm --filter @oddhound/fixture dev"]
+    command: [sh, -c, "node /workspace/node_modules/tsx/dist/cli.mjs apps/fixture/migrate.ts && node /workspace/node_modules/tsx/dist/cli.mjs apps/fixture/server.ts"]
   fixture-corrected:
     restart: unless-stopped
     <<: *runtime
+    volumes: ["./apps/fixture:/workspace/apps/fixture:ro", "dependencies:/workspace/node_modules:ro"]
     environment:
       FIXTURE_DATABASE_URL: postgres://oddhound_fixture:local-fixture-only@db:5432/oddhound_fixture
       FIXTURE_ORIGIN: http://localhost:3003
       FIXTURE_CORRECTED: "1"
     ports: ["127.0.0.1:3003:3002"]
-    command: [sh, -c, "pnpm --filter @oddhound/fixture migrate && pnpm --filter @oddhound/fixture dev"]
+    command: [sh, -c, "node /workspace/node_modules/tsx/dist/cli.mjs apps/fixture/migrate.ts && node /workspace/node_modules/tsx/dist/cli.mjs apps/fixture/server.ts"]
 volumes:
   dependencies: {}
   database: {}
