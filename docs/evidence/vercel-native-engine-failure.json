@@ -1,0 +1,14 @@
+{
+  "deploymentId": "dpl_GGMgFvoWKHdutZ6iaYFSxGfwVNfX",
+  "sourceCommit": "cc2c54f8da180f5b9c0d07cbf9590d01ab04ddce",
+  "framework": "container",
+  "plan": "hobby",
+  "readyState": "ERROR",
+  "errorCode": "BUILD_UTILS_NODE_VERSION_INVALID",
+  "cause": "Vercel inspected the root package engines >=26 <27 before the Docker build.",
+  "runtimeDowngraded": false,
+  "nextApproach": "Stage tracked source under source/ beside the same pinned Node 26 Docker recipe, with no root Node package for the platform harness to select.",
+  "localStagedDockerBuildPassed": true,
+  "modelInference": false,
+  "claims": "Preserved frontend deployment failure and local packaging result. This record does not claim a ready hosted frontend."
+}

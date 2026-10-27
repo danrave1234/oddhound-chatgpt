@@ -4,6 +4,14 @@ The web project is `danrave1234s-projects/oddhound-chatgpt` on the existing **Ve
 
 Vercel's native Node version selector currently offers 24 and 22. `Dockerfile.vercel` instead builds and runs the same Next.js application with pinned Node 26.12.1 using Vercel's [Container runtime](https://vercel.com/docs/functions/runtimes/container), available on all plans. The project now selects the Container preset with the repository root as its context. The local production image builds successfully, serves all three landing actions, and returns 401 for signed-out private runs and the development runner. It runs as UID 1000. A hosted frontend deployment and full GitHub sign-in are separate checks.
 
+The first frontend deployment [failed before Docker startup](evidence/vercel-native-engine-failure.json): Vercel's harness applied its native Node selector to the root package. Source/runtime floors were retained. `scripts/prepare-vercel.ps1` now inventories tracked files and runs the Node 26 packaging helper to place application source under `source/` beside the same Docker recipe. There is no root Node package for the platform harness to select. The staged context passes a real Docker production build; deployment source inspection confirms Container, no root package and no private/env/data paths. The helper saves source hashes and whether local changes were present. Use a clean committed tree for the final preview.
+
+```powershell
+pwsh -NoProfile -File scripts/prepare-vercel.ps1
+# Use the directory printed by the helper.
+vercel deploy --cwd data/vercel-source-<commit-prefix> --project oddhound-chatgpt --scope danrave1234s-projects --yes
+```
+
 ## Actual Fly result
 
 [Probe 6173dbf3](evidence/fly-startup-6173dbf3-5b57-4b5b-a237-db0d9fd020b1.json) passed on a fresh browser Machine in `sin`:
@@ -36,7 +44,9 @@ Observation metadata is capped at 64 KiB even without a screenshot. Polling/SSE 
 
 ## Validation and access
 
-This slice passes 38 focused tests (synthetic model transports), 10 local PostgreSQL integration tests, 10 hosted PostgreSQL integration tests, TypeScript, 15 real browser workflow checks, 11 mapped-policy canaries and four Python policy tests. Dependency audit reports no known vulnerabilities; import policy passes for 88 source files. The production worker and independent reaper images both start against the hosted test database with Node 26.12.1; their actual Fly deployment is still pending. No additional Meta inference occurred; the last actual product model remains Direct Meta `muse-spark-1.3`. Development model spend remains $3.285349 of $5, with no held/unknown usage. The $15 judging reserve remains unused. Full public admission stays disabled.
+This slice passes 39 focused tests (synthetic model transports), 10 local PostgreSQL integration tests, 10 hosted PostgreSQL integration tests, TypeScript, 15 real browser workflow checks, 11 mapped-policy canaries and four Python policy tests. Dependency audit reports no known vulnerabilities; import policy passes for 88 source files. The production worker and independent reaper images both start against the hosted test database with Node 26.12.1; their actual Fly deployment is still pending. No additional Meta inference occurred; the last actual product model remains Direct Meta `muse-spark-1.3`. Development model spend remains $3.285349 of $5, with no held/unknown usage. The $15 judging reserve remains unused. Full public admission stays disabled.
+
+Production and Neon database connections now force `sslmode=verify-full`, including when the provisioned URL requests weaker verification. Idle pool errors are handled without logging credentials. `/api/status` reports the actual web Node runtime for deployment verification.
 
 GitHub Actions for commit `9b153e7` [passed](https://github.com/danrave1234/oddhound-chatgpt/actions/runs/40479111001). That is the earlier committed slice, not a claim about an unpushed successor.
 
