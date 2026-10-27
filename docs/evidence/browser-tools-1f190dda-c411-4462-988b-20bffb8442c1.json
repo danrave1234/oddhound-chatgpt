@@ -1,0 +1,38 @@
+{
+  "runId": "1f190dda-c411-4462-988b-20bffb8442c1",
+  "profile": "owned-lab-v1",
+  "modelInference": false,
+  "scripted": true,
+  "startedAt": "2026-10-27T05:43:28.647Z",
+  "checks": [
+    "actual_nonroot_chromium_sandbox",
+    "live_page_discovery",
+    "private_screenshot_and_tenant_boundary",
+    "other_ui_origin_refused",
+    "generated_credential_references_and_pixel_suppression",
+    "real_registration_without_seeded_login",
+    "real_login",
+    "native_number_rejection_does_not_abort_exploration",
+    "approved_create_confirmed_by_independent_sql",
+    "approved_edit_and_cancel_confirmed_by_independent_sql",
+    "unexpected_boundary_write_reaches_real_backing_store",
+    "fresh_actor_and_cross_actor_credential_refusal",
+    "fresh_mobile_context_and_cross_context_capture_suppression",
+    "prepared_identity_cap",
+    "stop_closes_browser"
+  ],
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "initialDocument": {
+    "title": "Spaces for your next idea · Fieldwork",
+    "text": "Fieldwork.\nSign in\nCreate account\nA place to do your best work\nYour ideas need a little space.\n\nBook a quiet desk, bring a small team, or try a different way to work.\n\nStart something.\n\nCreate an account to make and manage your bookings.\n\nCreate account\nPick up where you left off.\n\nYour workspace is waiting.\n\nSign in\nOddhound’s owned synthetic testing application. Use disposable test identities and data. No real payments or messages are sent.",
+    "controls": 5
+  },
+  "passed": true,
+  "finishedAt": "2026-10-27T05:44:04.911Z",
+  "claims": "Owned local component execution only; no Fly deployment, public-site clearance or autonomous discovery claim."
+}

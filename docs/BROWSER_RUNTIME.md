@@ -20,6 +20,8 @@ The owned lab uses two explicit private fixture destinations and a static intern
 
 These results establish component behavior, not autonomous discovery, the full R1 network matrix, all SELF gates, deployed containment or real-site compatibility. Account/fixture operation grants, public/anonymous funding, image inference, complete retests and Fly lifecycle proof remain separate work.
 
+Later, [two real Meta-driven workflows](AUTONOMOUS_EXPLORATION.md) completed through the same product tool path. A number-field rejection regression brings the scripted suite to 15 passing checks. The full network/deployment and release limitations above still apply.
+
 ## Reproduce locally
 
 After the main setup and fixture bootstrap in README:

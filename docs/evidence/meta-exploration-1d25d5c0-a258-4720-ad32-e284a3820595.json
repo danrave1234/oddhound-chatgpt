@@ -1,0 +1,121 @@
+{
+  "runId": "1d25d5c0-a258-4720-ad32-e284a3820595",
+  "startedAt": "2026-10-27T05:39:02.277Z",
+  "provider": "Direct Meta",
+  "model": "muse-spark-1.3",
+  "profile": "owned-lab-v1",
+  "autonomous": true,
+  "scripted": false,
+  "seedKnowledgeProvided": false,
+  "paidCeilingUsd": 2,
+  "fundingAccount": "development",
+  "inputUsdPerMillion": 1.25,
+  "outputUsdPerMillion": 4.25,
+  "pricingSource": "https://dev.meta.ai/models/muse-spark",
+  "imagesSent": false,
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "error": "action_outcome_unknown",
+  "browserCloseAcknowledged": true,
+  "completed": false,
+  "checks": {
+    "registered": true,
+    "returnedLogin": true,
+    "validCreate": true,
+    "edited": true,
+    "cancelled": true,
+    "invalidPersisted": true
+  },
+  "storeChanges": [
+    {
+      "action": "click",
+      "created": [
+        3
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [
+        {
+          "from": 3,
+          "to": 5
+        }
+      ],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [
+        {
+          "from": 5,
+          "to": 0
+        }
+      ],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [
+        {
+          "from": 0,
+          "to": 9
+        }
+      ],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        0
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        9
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        -2
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [],
+      "cancelled": 1
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [],
+      "cancelled": 1
+    }
+  ],
+  "modelCandidates": [],
+  "actions": 35,
+  "turns": 35,
+  "spentMicros": 386997,
+  "heldMicros": 0,
+  "unknownUsage": false,
+  "passed": false,
+  "finishedAt": "2026-10-27T05:40:33.936Z",
+  "claims": "Real Meta-driven owned local workflow only. No Fly lifecycle, public-site or complete SELF clearance."
+}

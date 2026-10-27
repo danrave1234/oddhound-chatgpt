@@ -28,6 +28,7 @@ export function estimatedMicros(messages:Message[],inputPerMillion:number,output
 export class MetaAdapter{
   constructor(private key:string,private transport:typeof fetch=fetch){if(!key)throw new Error('meta_not_configured');}
   async complete(messages:Message[],signal:AbortSignal){
+    signal=AbortSignal.any([signal,AbortSignal.timeout(60000)]);
     const response=await this.transport(ENDPOINT,{method:'POST',signal,headers:{authorization:`Bearer ${this.key}`,'content-type':'application/json'},body:JSON.stringify({model:MODEL,messages,tools,tool_choice:'auto',temperature:0.3,max_tokens:2000})});
     if(!response.ok)throw new Error(response.status===429?'provider_rate_limited':`provider_http_${response.status}`);
     const reader=response.body?.getReader();if(!reader)throw new Error('provider_body_missing');const chunks:Uint8Array[]=[];let size=0;for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>1024*1024){await reader.cancel();throw new Error('provider_response_limit');}chunks.push(value);}const value=JSON.parse(Buffer.concat(chunks).toString('utf8'));const choice=value.choices?.[0];if(!choice?.message||choice.message.role!=='assistant')throw new Error('invalid_provider_reply');

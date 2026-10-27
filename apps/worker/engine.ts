@@ -19,6 +19,7 @@ export async function explore(scope:EngineScope,d:EngineDependencies){
   let actions=0;
   for(let turn=0;turn<limits.turns;turn++){
     d.signal.throwIfAborted();await d.checkFence();
+    if(turn>=limits.turns-5)messages.push({role:'user',content:`Trusted runtime budget: ${limits.turns-turn} model turns remain. Preserve partial evidence and finish with finish_run before the limit; do not claim untested coverage.`});
     const reserved=estimatedMicros(messages,d.inputPrice,d.outputPrice),id=await d.reserve(reserved);
     let reply:Awaited<ReturnType<MetaAdapter['complete']>>;
     try{reply=await d.model.complete(messages,d.signal);const actual=Math.ceil(reply.usage.prompt_tokens*d.inputPrice+reply.usage.completion_tokens*d.outputPrice);await d.settle(id,actual,reply.usage);}

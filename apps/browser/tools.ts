@@ -43,7 +43,12 @@ export class BrowserTools{
       if(action.name==='click')await handle.click({timeout:7000});
       else if(action.name==='select_option')await handle.selectOption({label:action.value},{timeout:7000});
       else{const isSecret=await handle.evaluate(el=>el.getAttribute('type')==='password'||/(password|secret|token|one-time-code)/i.test([el.getAttribute('name'),el.getAttribute('autocomplete')].join(' ')));
-        if(action.name==='fill'){if(isSecret)throw new Error('credential_reference_required');await handle.fill(action.value,{timeout:7000});}
+        if(action.name==='fill'){
+          if(isSecret)throw new Error('credential_reference_required');
+          const numberField=await handle.evaluate(el=>el instanceof HTMLInputElement&&el.type==='number');
+          if(numberField&&action.value.trim()!==''&&Number.isNaN(Number(action.value.trim())))return{...await this.observe(),blocked:'native_number_input_rejected_text'};
+          await handle.fill(action.value,{timeout:7000});
+        }
         else{const credential=this.credentials.get(action.reference);if(!credential||credential.actor!==this.actor)throw new Error('credential_scope_refused');role.sensitive=true;await handle.fill(credential.value,{timeout:7000});}
       }
     }

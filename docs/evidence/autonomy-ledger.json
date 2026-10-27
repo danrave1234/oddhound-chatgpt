@@ -1,0 +1,259 @@
+{
+  "recordedAt": "2026-10-27T05:55:09.709Z",
+  "source": "Actual local PostgreSQL action/call ledgers; not provider invoice reconciliation",
+  "runs": [
+    {
+      "id": "1d25d5c0-a258-4720-ad32-e284a3820595",
+      "status": "blocked",
+      "actions": 35,
+      "turns": 35,
+      "spent_micros": "386997",
+      "held_micros": "0",
+      "unknown_usage": false,
+      "funding_account": "development",
+      "callCount": 35,
+      "settledCalls": 35,
+      "unknownCalls": 0,
+      "maximumCallReservationMicros": 102319,
+      "numericFills": [
+        {
+          "key": "7-1",
+          "operation": "create",
+          "value": "3"
+        },
+        {
+          "key": "9-1",
+          "operation": "edit",
+          "value": "5"
+        },
+        {
+          "key": "11-1",
+          "operation": "edit",
+          "value": "0"
+        },
+        {
+          "key": "13-1",
+          "operation": "edit",
+          "value": "9"
+        },
+        {
+          "key": "16-1",
+          "operation": "create",
+          "value": "0"
+        },
+        {
+          "key": "19-1",
+          "operation": "create",
+          "value": "2.5"
+        },
+        {
+          "key": "22-1",
+          "operation": "create",
+          "value": "9"
+        },
+        {
+          "key": "25-1",
+          "operation": "create",
+          "value": "-2"
+        },
+        {
+          "key": "35-1",
+          "operation": "create",
+          "value": "abc"
+        }
+      ],
+      "rejections": []
+    },
+    {
+      "id": "66c0734b-beba-4d77-814e-7a341bc64442",
+      "status": "completed",
+      "actions": 51,
+      "turns": 52,
+      "spent_micros": "920181",
+      "held_micros": "0",
+      "unknown_usage": false,
+      "funding_account": "development",
+      "callCount": 52,
+      "settledCalls": 52,
+      "unknownCalls": 0,
+      "maximumCallReservationMicros": 160380,
+      "numericFills": [
+        {
+          "key": "7-1",
+          "operation": "create",
+          "value": "2"
+        },
+        {
+          "key": "9-1",
+          "operation": "edit",
+          "value": "4"
+        },
+        {
+          "key": "12-1",
+          "operation": "create",
+          "value": "0"
+        },
+        {
+          "key": "15-1",
+          "operation": "create",
+          "value": "9"
+        },
+        {
+          "key": "18-1",
+          "operation": "create",
+          "value": "2.5"
+        },
+        {
+          "key": "21-1",
+          "operation": "create",
+          "value": "-3"
+        },
+        {
+          "key": "23-1",
+          "operation": "edit",
+          "value": "0"
+        },
+        {
+          "key": "26-1",
+          "operation": "create",
+          "value": "abc"
+        },
+        {
+          "key": "36-1",
+          "operation": "create",
+          "value": "3"
+        },
+        {
+          "key": "39-1",
+          "operation": "create",
+          "value": "5"
+        },
+        {
+          "key": "41-1",
+          "operation": "create",
+          "value": "1"
+        }
+      ],
+      "rejections": [
+        {
+          "key": "26-1",
+          "result": "native_number_input_rejected_text"
+        },
+        {
+          "key": "43-1",
+          "result": "fixture_validation_error_observed"
+        }
+      ]
+    },
+    {
+      "id": "fcf176c4-83fd-4ee9-8d57-d1a6eb23efaa",
+      "status": "completed",
+      "actions": 56,
+      "turns": 57,
+      "spent_micros": "909820",
+      "held_micros": "0",
+      "unknown_usage": false,
+      "funding_account": "development",
+      "callCount": 57,
+      "settledCalls": 57,
+      "unknownCalls": 0,
+      "maximumCallReservationMicros": 144435,
+      "numericFills": [
+        {
+          "key": "7-1",
+          "operation": "create",
+          "value": "2"
+        },
+        {
+          "key": "9-1",
+          "operation": "edit",
+          "value": "3"
+        },
+        {
+          "key": "11-1",
+          "operation": "edit",
+          "value": "0"
+        },
+        {
+          "key": "15-1",
+          "operation": "create",
+          "value": "9"
+        },
+        {
+          "key": "19-1",
+          "operation": "create",
+          "value": "2.5"
+        },
+        {
+          "key": "22-1",
+          "operation": "create",
+          "value": "0"
+        },
+        {
+          "key": "32-1",
+          "operation": "create",
+          "value": "1"
+        },
+        {
+          "key": "35-1",
+          "operation": "create",
+          "value": "8"
+        },
+        {
+          "key": "38-1",
+          "operation": "create",
+          "value": "two"
+        },
+        {
+          "key": "41-1",
+          "operation": "create",
+          "value": "-1"
+        },
+        {
+          "key": "45-1",
+          "operation": "create",
+          "value": "2"
+        },
+        {
+          "key": "48-1",
+          "operation": "create",
+          "value": "4"
+        }
+      ],
+      "rejections": [
+        {
+          "key": "12-1",
+          "result": "fixture_validation_error_observed"
+        },
+        {
+          "key": "16-1",
+          "result": "fixture_validation_error_observed"
+        },
+        {
+          "key": "23-1",
+          "result": "fixture_validation_error_observed"
+        },
+        {
+          "key": "38-1",
+          "result": "native_number_input_rejected_text"
+        },
+        {
+          "key": "42-1",
+          "result": "fixture_validation_error_observed"
+        }
+      ]
+    }
+  ],
+  "development": {
+    "id": "development",
+    "limit_micros": "5000000",
+    "spent_micros": "2216998",
+    "held_micros": "0"
+  },
+  "publicUsage": {
+    "lifetime_spent": "4119",
+    "day_spent": "4119",
+    "held": "0"
+  },
+  "judgeAccountConfigured": false
+}

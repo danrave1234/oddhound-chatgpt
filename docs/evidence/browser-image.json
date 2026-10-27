@@ -1,11 +1,15 @@
 {
   "profile": "owned-lab-v1",
-  "testedRunId": "ea77572d-aa87-4270-bf00-d6fbd72c6cc6",
-  "localImageId": "sha256:b38d430582e4af626b489b63a4b2c2a9b7e2c49841f8d0c98d312984268b71f1",
-  "localOciIndexDigest": "sha256:b38d430582e4af626b489b63a4b2c2a9b7e2c49841f8d0c98d312984268b71f1",
+  "testedRunId": "1f190dda-c411-4462-988b-20bffb8442c1",
+  "localImageId": "sha256:d279792736e6071a5fc2fc31658777565ace90e750e751462aba9f9d9845b77b",
+  "localOciIndexDigest": "sha256:d279792736e6071a5fc2fc31658777565ace90e750e751462aba9f9d9845b77b",
   "publishedRegistryImage": false,
   "chromiumVersion": "156.0.8078.4",
   "sandboxUid": 1101,
   "guestExitCode": 0,
-  "note": "Fingerprint of the local image used for the recorded run; subsequent CI builds have their own fingerprints. No Fly deployment."
+  "note": "Fingerprint of the local image used for the recorded run; subsequent CI builds have their own fingerprints. No Fly deployment.",
+  "autonomousRuns": [
+    "66c0734b-beba-4d77-814e-7a341bc64442",
+    "fcf176c4-83fd-4ee9-8d57-d1a6eb23efaa"
+  ]
 }

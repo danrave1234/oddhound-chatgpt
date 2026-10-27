@@ -1,13 +1,10 @@
 import {Queue,Worker,createPostgresBackend} from 'bullmq';
-import {randomUUID,createHash} from 'node:crypto';
+import {randomUUID} from 'node:crypto';
 import {getPool,event,transaction} from '@oddhound/db';
-import {MetaAdapter} from '@oddhound/agent';
-import {limits} from '@oddhound/contracts';
-import {reserveCall,settleCall,unknownCall,releaseUnusedBudget,admitAction,actionResult} from '../../packages/db/budget';
+import {releaseUnusedBudget} from '../../packages/db/budget';
 import {scrub,unseal} from '../../packages/db/vault';
 import {checkOwnership} from '../web/lib/ownership';
-import {explore} from './engine';
-import {saveObservation} from '../../packages/db/artifacts';
+import {runExploration} from './exploration';
 import {provision,destroy,runtimeConfigured,type BrowserRuntime} from './runtime';
 
 const connection=process.env.DATABASE_URL;if(!connection)throw new Error('database_not_configured');
@@ -34,14 +31,7 @@ async function processRun(id:string){
     const browser=await provision(id,{...row.scope,expiresAt:row.expires_at},new Date(row.expires_at),signal);activeBrowser=browser;
     await browser.call('initialize',{credentials:values});await fence();
     await pool.query("UPDATE runs SET status='running' WHERE id=$1 AND generation=$2",[id,generation]);await event(id,'run.running','Ownership rechecked. The isolated browser is exploring.');
-    const observation=async()=>{await fence();const value=await saveObservation(id,await browser.observe());await event(id,'browser.observation','Browser state captured.',value);return value;};
-    await explore({origin:site.origin,goal:row.goal,rules:row.scope.rules,writes:row.scope.writes,registration:row.scope.registration,references:values.map(c=>c.reference)},{model:new MetaAdapter(process.env.META_API_KEY),signal,inputPrice,outputPrice,
-      reserve:bound=>reserveCall(id,generation,bound),settle:(call,actual,usage)=>settleCall(id,call,actual,usage),unknown:call=>unknownCall(id,call),checkFence:async()=>{await fence();await browser.call('ready');},sanitize,
-      observe:observation,
-      execute:async(action,key)=>{await new Promise<void>((resolve,reject)=>{const timer=setTimeout(resolve,1050);signal.addEventListener('abort',()=>{clearTimeout(timer);reject(signal.reason);},{once:true});});await admitAction(id,generation,key);await fence();try{const result=await saveObservation(id,await browser.execute(action,key));const clean=JSON.parse(sanitize(JSON.stringify(result)));await actionResult(id,key,clean);await event(id,'browser.action',`Browser action observed: ${action.name}.`,{action:action.name,key,...clean});return clean;}catch(error){const code=(error as Error).message;const refused=['stale_or_unknown_target','frame_action_refused','credential_reference_required','credential_scope_refused','registration_namespace_required','registration_identity_limit','action_rate_limited','tool_scope_refused','browser_busy'];if(refused.includes(code)){await actionResult(id,key,{refused:code});throw error;}await event(id,'action.outcome_unknown','The browser action outcome is uncertain. Exploration is fenced; the action will not be retried.',{key});throw new Error('action_outcome_unknown');}},
-      record:(kind,message,data)=>event(id,kind,sanitize(message),data),
-      findings:async candidates=>{for(const c of candidates){const version=createHash('sha256').update(c.rule).digest('hex');await pool.query("INSERT INTO findings(run_id,title,status,category,severity,rule,observed,evidence,assertion_version) VALUES($1,$2,'candidate','needs_review','info',$3,$4,$5,$6)",[id,c.title,c.rule,c.observation,{source:'meta_candidate',independentlyVerified:false},version]);}}
-    });completed=true;
+    await runExploration({id,generation,scope:{origin:site.origin,goal:row.goal,rules:row.scope.rules,writes:row.scope.writes,registration:row.scope.registration,references:values.map(c=>c.reference)},browser,signal,fence,sanitize,inputPrice,outputPrice});completed=true;
   }catch(error){const message=(error as Error)?.message??'';reason=signal.aborted?(signal.reason?.message??'run_fenced'):/^[a-z0-9_]+$/.test(message)?message:'execution_failed';await event(id,'run.execution_ended','Exploration ended.',{reason});}
   finally{
     clearInterval(timer);controller.abort(new Error('run_finalizing'));if(activeBrowser)try{await activeBrowser.requestStop();}catch{await event(id,'browser.close_unconfirmed','Browser close acknowledgement was not received; Machine destruction will be checked separately.');}

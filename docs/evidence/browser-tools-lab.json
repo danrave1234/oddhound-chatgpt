@@ -1,9 +1,9 @@
 {
-  "runId": "ea77572d-aa87-4270-bf00-d6fbd72c6cc6",
+  "runId": "1f190dda-c411-4462-988b-20bffb8442c1",
   "profile": "owned-lab-v1",
   "modelInference": false,
   "scripted": true,
-  "startedAt": "2026-10-27T05:28:55.898Z",
+  "startedAt": "2026-10-27T05:43:28.647Z",
   "checks": [
     "actual_nonroot_chromium_sandbox",
     "live_page_discovery",
@@ -12,6 +12,7 @@
     "generated_credential_references_and_pixel_suppression",
     "real_registration_without_seeded_login",
     "real_login",
+    "native_number_rejection_does_not_abort_exploration",
     "approved_create_confirmed_by_independent_sql",
     "approved_edit_and_cancel_confirmed_by_independent_sql",
     "unexpected_boundary_write_reaches_real_backing_store",
@@ -32,6 +33,6 @@
     "controls": 5
   },
   "passed": true,
-  "finishedAt": "2026-10-27T05:29:28.993Z",
+  "finishedAt": "2026-10-27T05:44:04.911Z",
   "claims": "Owned local component execution only; no Fly deployment, public-site clearance or autonomous discovery claim."
 }

@@ -1,0 +1,93 @@
+{
+  "runId": "fcf176c4-83fd-4ee9-8d57-d1a6eb23efaa",
+  "startedAt": "2026-10-27T05:48:27.810Z",
+  "provider": "Direct Meta",
+  "model": "muse-spark-1.3",
+  "profile": "owned-lab-v1",
+  "autonomous": true,
+  "scripted": false,
+  "seedKnowledgeProvided": false,
+  "paidCeilingUsd": 2,
+  "fundingAccount": "development",
+  "inputUsdPerMillion": 1.25,
+  "outputUsdPerMillion": 4.25,
+  "pricingSource": "https://dev.meta.ai/models/muse-spark",
+  "imagesSent": false,
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "browserCloseAcknowledged": true,
+  "completed": true,
+  "checks": {
+    "registered": true,
+    "returnedLogin": true,
+    "validCreate": true,
+    "edited": true,
+    "cancelled": true,
+    "invalidPersisted": false
+  },
+  "storeChanges": [
+    {
+      "action": "click",
+      "created": [
+        2
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [
+        {
+          "from": 2,
+          "to": 3
+        }
+      ],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [],
+      "cancelled": 1
+    },
+    {
+      "action": "click",
+      "created": [
+        1
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        8
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        4
+      ],
+      "updated": [],
+      "cancelled": 0
+    }
+  ],
+  "modelCandidates": [],
+  "actions": 56,
+  "turns": 57,
+  "spentMicros": 909820,
+  "heldMicros": 0,
+  "unknownUsage": false,
+  "expectedControl": "corrected",
+  "passed": true,
+  "finishedAt": "2026-10-27T05:51:03.736Z",
+  "claims": "Real Meta-driven owned local workflow only. No Fly lifecycle, public-site or complete SELF clearance."
+}

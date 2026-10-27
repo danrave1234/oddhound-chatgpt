@@ -1,0 +1,13 @@
+# Explicit development-only paid test; never included by ordinary tests or CI.
+services:
+  meta-lab-controller:
+    extends: {file: compose.browser-lab.yaml, service: browser-lab-controller}
+    profiles: [paid-lab]
+    env_file:
+      - {path: .env.local, required: true}
+      - data/browser-lab.env
+    environment:
+      ODDHOUND_LOCAL_WORKSPACE: "1"
+      ODDHOUND_ENABLE_PAID_LAB: "1"
+      ODDHOUND_LAB_EXPECT_CORRECTED: "${ODDHOUND_LAB_FIXTURE_CORRECTED:-0}"
+    command: [pnpm, exec, tsx, apps/worker/lab-meta.ts, --paid]

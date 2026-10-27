@@ -1,0 +1,146 @@
+{
+  "runId": "66c0734b-beba-4d77-814e-7a341bc64442",
+  "startedAt": "2026-10-27T05:44:42.570Z",
+  "provider": "Direct Meta",
+  "model": "muse-spark-1.3",
+  "profile": "owned-lab-v1",
+  "autonomous": true,
+  "scripted": false,
+  "seedKnowledgeProvided": false,
+  "paidCeilingUsd": 2,
+  "fundingAccount": "development",
+  "inputUsdPerMillion": 1.25,
+  "outputUsdPerMillion": 4.25,
+  "pricingSource": "https://dev.meta.ai/models/muse-spark",
+  "imagesSent": false,
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "browserCloseAcknowledged": true,
+  "completed": true,
+  "checks": {
+    "registered": true,
+    "returnedLogin": true,
+    "validCreate": true,
+    "edited": true,
+    "cancelled": true,
+    "invalidPersisted": true
+  },
+  "storeChanges": [
+    {
+      "action": "click",
+      "created": [
+        2
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [
+        {
+          "from": 2,
+          "to": 4
+        }
+      ],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        0
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        9
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        -3
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [
+        {
+          "from": 4,
+          "to": 0
+        }
+      ],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        1
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [],
+      "cancelled": 1
+    },
+    {
+      "action": "click",
+      "created": [],
+      "updated": [],
+      "cancelled": 1
+    },
+    {
+      "action": "click",
+      "created": [
+        3
+      ],
+      "updated": [],
+      "cancelled": 0
+    },
+    {
+      "action": "click",
+      "created": [
+        5
+      ],
+      "updated": [],
+      "cancelled": 0
+    }
+  ],
+  "modelCandidates": [
+    {
+      "title": "Create booking accepts out-of-range seat counts",
+      "rule": "Bookings must have an integer from 1 through 8 seats.",
+      "observed": "After creating normal booking 'Test Desk Alpha' with 2 seats, created 'Edge Zero' with 0 seats shown as 'Edge Zero confirmed 0 seats', created 'Edge Nine' with 9 seats shown as 'Edge Nine confirmed 9 seats', and created 'Edge Negative' with -3 seats shown as 'Edge Negative confirmed -3 seats'. Page header states 'Bookings must have an integer from 1 through 8 seats'.",
+      "status": "candidate"
+    },
+    {
+      "title": "Edit booking allows changing to 0 seats",
+      "rule": "Bookings must have an integer from 1 through 8 seats.",
+      "observed": "Existing booking 'Test Desk Alpha confirmed 4 seats' was edited by entering 0 in 'Update seats for Test Desk Alpha' and clicking Update seats, resulting in 'Test Desk Alpha confirmed 0 seats' with 'Your changes were saved.' No rejection.",
+      "status": "candidate"
+    }
+  ],
+  "actions": 51,
+  "turns": 52,
+  "spentMicros": 920181,
+  "heldMicros": 0,
+  "unknownUsage": false,
+  "passed": true,
+  "finishedAt": "2026-10-27T05:47:20.984Z",
+  "claims": "Real Meta-driven owned local workflow only. No Fly lifecycle, public-site or complete SELF clearance."
+}
