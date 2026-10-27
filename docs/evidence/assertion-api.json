@@ -1,0 +1,17 @@
+{
+  "checks": [
+    "owner_read_contains_immutable_spec_and_history",
+    "retest_run_resolves_original_finding_and_recipe",
+    "report_exports_original_recipe_and_failed_passing_evidence",
+    "http_refuses_replacing_frozen_assertion",
+    "http_refuses_cross_origin_replay",
+    "unproved_runtime_cannot_admit_replay",
+    "refused_requests_leave_hash_and_attempt_history_unchanged"
+  ],
+  "identity": "explicit local development identity; GitHub OAuth not configured",
+  "passed": true,
+  "date": "2026-10-27T07:54:51.5272367Z",
+  "modelInference": false,
+  "retestRunId": "75522ec9-472f-44e2-bbf1-b1eee72d366c",
+  "findingId": "f580f282-c348-4a44-b949-0c98dbea251c"
+}

@@ -6,6 +6,8 @@ import {scrub,unseal} from '../../packages/db/vault';
 import {checkOwnership} from '../web/lib/ownership';
 import {assertAuthorizationCurrent} from '../../packages/db/run-authorization';
 import {runExploration} from './exploration';
+import {runVerification} from './verification';
+import {abandonAssertionAttempt} from '../../packages/db/assertions';
 import {provision,destroy,runtimeConfigured,type BrowserRuntime} from './runtime';
 
 const connection=process.env.DATABASE_URL;if(!connection)throw new Error('database_not_configured');
@@ -20,9 +22,9 @@ async function processRun(id:string){
   const timer=setInterval(()=>{if(heartbeatBusy)return;heartbeatBusy=true;void fence().then(()=>pool.query("UPDATE runs SET lease_until=now()+interval '45 seconds' WHERE id=$1 AND lease_owner=$2 AND generation=$3",[id,workerId,generation])).catch(e=>controller.abort(e)).finally(()=>{heartbeatBusy=false;});},1000);
   try{
     await event(id,'run.provisioning','Rechecking ownership and preparing a fresh browser Machine.');
-    if(!process.env.META_API_KEY)throw new Error('meta_not_configured');if(!runtimeConfigured())throw new Error('browser_not_configured');
+    if(!row.scope.assertionTask&&!process.env.META_API_KEY)throw new Error('meta_not_configured');if(!runtimeConfigured())throw new Error('browser_not_configured');
     const inputPrice=Number(process.env.META_INPUT_USD_PER_MILLION),outputPrice=Number(process.env.META_OUTPUT_USD_PER_MILLION);
-    if(!(inputPrice>0&&outputPrice>0))throw new Error('model_prices_not_configured');
+    if(!row.scope.assertionTask&&!(inputPrice>0&&outputPrice>0))throw new Error('model_prices_not_configured');
     const site=(await pool.query('SELECT * FROM sites WHERE id=$1 AND owner_id=$2',[row.site_id,row.owner_id])).rows[0];
     if(!site||site.revision!==row.scope.revision||!site.verification_method)throw new Error('site_verification_required');
     await checkOwnership(site.origin,site.verification_token,site.verification_method);await fence();
@@ -35,11 +37,12 @@ async function processRun(id:string){
     const sanitize=(text:string)=>scrub(text,[...values.map((c:any)=>c.value),...['META_API_KEY','FLY_API_TOKEN','BETTER_AUTH_SECRET','DATABASE_URL','ODDHOUND_VAULT_KEY','GITHUB_CLIENT_SECRET'].map(k=>process.env[k]??'')]);
     const browser=await provision(id,{...row.scope,expiresAt:row.expires_at},new Date(row.expires_at),signal);activeBrowser=browser;
     await browser.call('initialize',{credentials:values});await fence();
-    await pool.query("UPDATE runs SET status='running' WHERE id=$1 AND generation=$2",[id,generation]);await event(id,'run.running','Ownership rechecked. The isolated browser is exploring.');
-    await runExploration({id,generation,scope:{origin:site.origin,goal:row.goal,rules:row.scope.rules,writes:row.scope.writes,registration:row.scope.registration,references:values.map((c:any)=>c.reference),authority:approved.guest},browser,signal,fence,sanitize,inputPrice,outputPrice});completed=true;
-  }catch(error){const message=(error as Error)?.message??'';reason=signal.aborted?(signal.reason?.message??'run_fenced'):/^[a-z0-9_]+$/.test(message)?message:'execution_failed';await event(id,'run.execution_ended','Exploration ended.',{reason});}
+    await pool.query("UPDATE runs SET status='running' WHERE id=$1 AND generation=$2",[id,generation]);await event(id,'run.running',row.scope.assertionTask?'Ownership rechecked. The isolated browser is replaying the saved assertion.':'Ownership rechecked. The isolated browser is exploring.');
+    if(row.scope.assertionTask)await runVerification({id,generation,namespace:approved.guest.namespace,browser,signal,fence,sanitize});
+    else await runExploration({id,generation,scope:{origin:site.origin,goal:row.goal,rules:row.scope.rules,writes:row.scope.writes,registration:row.scope.registration,references:values.map((c:any)=>c.reference),authority:approved.guest},browser,signal,fence,sanitize,inputPrice,outputPrice});completed=true;
+  }catch(error){const message=(error as Error)?.message??'';reason=signal.aborted?(signal.reason?.message??'run_fenced'):/^[a-z0-9_]+$/.test(message)?message:'execution_failed';await event(id,'run.execution_ended',row.scope.assertionTask?'Assertion execution ended.':'Exploration ended.',{reason});}
   finally{
-    clearInterval(timer);controller.abort(new Error('run_finalizing'));if(activeBrowser)try{await activeBrowser.requestStop();}catch{await event(id,'browser.close_unconfirmed','Browser close acknowledgement was not received; Machine destruction will be checked separately.');}
+    clearInterval(timer);controller.abort(new Error('run_finalizing'));if(row.scope.assertionTask)await abandonAssertionAttempt(id,reason??'run_finalizing');if(activeBrowser)try{await activeBrowser.requestStop();}catch{await event(id,'browser.close_unconfirmed','Browser close acknowledgement was not received; Machine destruction will be checked separately.');}
     await pool.query("UPDATE runs SET status='finalizing',generation=generation+1 WHERE id=$1",[id]);
     const removed=await destroy(id);await releaseUnusedBudget(id);
     if(removed){const stopped=(await pool.query('SELECT stop_reason FROM runs WHERE id=$1',[id])).rows[0].stop_reason==='user_cancelled';const status=stopped?'stopped':completed?'completed':reason==='execution_failed'?'failed':'blocked';

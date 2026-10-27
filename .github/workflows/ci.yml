@@ -56,11 +56,23 @@ jobs:
           docker compose run --rm setup pnpm exec tsx apps/browser/lab-prepare.ts --grants
           docker compose -f compose.yaml -f compose.browser-lab.yaml up -d browser-lab
       - run: docker compose -f compose.yaml -f compose.browser-lab.yaml run --rm browser-lab-controller pnpm exec tsx apps/worker/lab-grants.ts
+      - name: Independently verify a scripted numeric candidate
+        run: |
+          docker compose run --rm setup pnpm exec tsx apps/browser/lab-prepare.ts
+          docker compose -f compose.yaml -f compose.browser-lab.yaml up -d browser-lab
+          docker compose -f compose.yaml -f compose.browser-lab.yaml run --rm browser-lab-controller pnpm exec tsx apps/worker/lab-assertion.ts --synthetic-candidate
+      - name: Retest the same assertion after correcting the target
+        run: |
+          export ODDHOUND_LAB_FIXTURE_CORRECTED=1
+          docker compose run --rm setup pnpm exec tsx apps/browser/lab-prepare.ts
+          docker compose -f compose.yaml -f compose.browser-lab.yaml up -d fixture-lab browser-lab
+          docker compose -f compose.yaml -f compose.browser-lab.yaml run --rm browser-lab-controller pnpm exec tsx apps/worker/lab-assertion.ts --retest
       - name: Show bounded component evidence
         if: always()
         run: |
           test ! -f docs/evidence/browser-tools-lab.json || cat docs/evidence/browser-tools-lab.json
           test ! -f docs/evidence/owner-grants-latest.json || cat docs/evidence/owner-grants-latest.json
+          test ! -f docs/evidence/fixed-assertion-latest.json || cat docs/evidence/fixed-assertion-latest.json
           docker compose -f compose.yaml -f compose.browser-lab.yaml logs --tail 20 browser-lab fixture-lab fixture-corrected-lab
       - name: Stop this job's containers
         if: always()

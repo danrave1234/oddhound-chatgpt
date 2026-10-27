@@ -1,0 +1,4 @@
+import {NextResponse} from 'next/server';import {requireIdentity} from '../../../../../lib/auth';import {body,assertSameOrigin,failure} from '../../../../../lib/http';
+import {assertionDetail,freezeAssertion} from '../../../../../../../packages/db/assertions';
+export async function GET(_request:Request,context:{params:Promise<{id:string}>}){try{const owner=await requireIdentity(),{id}=await context.params;return NextResponse.json({assertion:await assertionDetail(owner.id,id)},{headers:{'cache-control':'no-store'}});}catch(error){return failure(error);}}
+export async function POST(request:Request,context:{params:Promise<{id:string}>}){try{assertSameOrigin(request);const owner=await requireIdentity(),{id}=await context.params;return NextResponse.json({assertion:await freezeAssertion(owner.id,id,await body(request))},{status:201});}catch(error){return failure(error);}}

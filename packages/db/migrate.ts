@@ -45,5 +45,19 @@ CREATE OR REPLACE FUNCTION oddhound_freeze_run_contract() RETURNS trigger LANGUA
 IF NEW.scope IS DISTINCT FROM OLD.scope OR NEW.owner_id IS DISTINCT FROM OLD.owner_id OR NEW.site_id IS DISTINCT FROM OLD.site_id OR NEW.goal IS DISTINCT FROM OLD.goal THEN RAISE EXCEPTION 'run_contract_is_immutable' USING ERRCODE='23514'; END IF; RETURN NEW; END $$;
 DROP TRIGGER IF EXISTS freeze_run_contract ON runs;
 CREATE TRIGGER freeze_run_contract BEFORE UPDATE ON runs FOR EACH ROW EXECUTE FUNCTION oddhound_freeze_run_contract();
+CREATE TABLE IF NOT EXISTS finding_assertions(finding_id uuid PRIMARY KEY REFERENCES findings(id),spec jsonb NOT NULL,sha256 text NOT NULL,version integer NOT NULL CHECK(version=1),approved_by text NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE assertion_retests ADD COLUMN IF NOT EXISTS run_id uuid UNIQUE REFERENCES runs(id);
+ALTER TABLE assertion_retests ADD COLUMN IF NOT EXISTS purpose text NOT NULL DEFAULT 'retest' CHECK(purpose IN ('verification','retest'));
+CREATE OR REPLACE FUNCTION oddhound_freeze_assertion() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'assertion_is_immutable' USING ERRCODE='23514'; END $$;
+DROP TRIGGER IF EXISTS freeze_assertion ON finding_assertions;
+CREATE TRIGGER freeze_assertion BEFORE UPDATE ON finding_assertions FOR EACH ROW EXECUTE FUNCTION oddhound_freeze_assertion();
+CREATE OR REPLACE FUNCTION oddhound_freeze_assertion_attempt() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+IF NEW.finding_id IS DISTINCT FROM OLD.finding_id OR NEW.assertion_hash IS DISTINCT FROM OLD.assertion_hash OR NEW.assertion_version IS DISTINCT FROM OLD.assertion_version OR NEW.run_id IS DISTINCT FROM OLD.run_id OR NEW.purpose IS DISTINCT FROM OLD.purpose OR OLD.status!='not_run' THEN RAISE EXCEPTION 'assertion_attempt_is_immutable' USING ERRCODE='23514'; END IF; RETURN NEW; END $$;
+DROP TRIGGER IF EXISTS freeze_assertion_attempt ON assertion_retests;
+CREATE TRIGGER freeze_assertion_attempt BEFORE UPDATE ON assertion_retests FOR EACH ROW EXECUTE FUNCTION oddhound_freeze_assertion_attempt();
+CREATE OR REPLACE FUNCTION oddhound_freeze_finding_rule() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+IF EXISTS(SELECT 1 FROM finding_assertions WHERE finding_id=OLD.id) AND (NEW.rule IS DISTINCT FROM OLD.rule OR NEW.assertion_version IS DISTINCT FROM OLD.assertion_version OR NEW.run_id IS DISTINCT FROM OLD.run_id) THEN RAISE EXCEPTION 'finding_assertion_is_immutable' USING ERRCODE='23514'; END IF; RETURN NEW; END $$;
+DROP TRIGGER IF EXISTS freeze_finding_rule ON findings;
+CREATE TRIGGER freeze_finding_rule BEFORE UPDATE ON findings FOR EACH ROW EXECUTE FUNCTION oddhound_freeze_finding_rule();
 `);
 console.log('Oddhound application tables ready');await pool.end();

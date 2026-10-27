@@ -1,0 +1,1 @@
+{ "name": "@oddhound/checks", "private": true, "type": "module", "exports": "./index.ts", "dependencies": { "@oddhound/contracts": "workspace:*" } }

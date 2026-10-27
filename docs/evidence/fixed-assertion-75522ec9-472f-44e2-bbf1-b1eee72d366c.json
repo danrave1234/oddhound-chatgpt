@@ -1,0 +1,67 @@
+{
+  "runId": "75522ec9-472f-44e2-bbf1-b1eee72d366c",
+  "startedAt": "2026-10-27T07:39:55.015Z",
+  "scripted": true,
+  "modelInference": false,
+  "profile": "owned-lab-v1",
+  "purpose": "retest",
+  "checks": [
+    "actual_nonroot_sandbox",
+    "original_assertion_and_exact_recipe_unchanged",
+    "unchanged_assertion_passes_after_target_fix",
+    "independent_sql_confirms_probe_and_valid_control",
+    "finding_lifecycle_matches_saved_evidence",
+    "no_model_inference_or_model_spend",
+    "browser_closure_acknowledged"
+  ],
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "candidateSource": "historical_real_meta",
+  "findingId": "f580f282-c348-4a44-b949-0c98dbea251c",
+  "assertionHash": "ab42b4ea4f29e2befdc27c66c606a95165e0dc70e65f9226d6ac4fa279611ba8",
+  "result": {
+    "status": "passed",
+    "reason": "probe_satisfies_rule_with_valid_control",
+    "control": {
+      "guardObserved": true,
+      "recordCount": 1,
+      "value": 3,
+      "text": "lab_d1381a318b_75522ec9_control confirmed\n\n3 seats\n\nUpdate seats for lab_d1381a318b_75522ec9_control\nUpdate seats Cancel booking",
+      "url": "https://fixture-lab:3002/"
+    },
+    "probe": {
+      "guardObserved": true,
+      "recordCount": 0,
+      "value": null,
+      "text": "",
+      "url": "https://fixture-lab:3002/"
+    },
+    "controlAfter": {
+      "guardObserved": true,
+      "recordCount": 1,
+      "value": 3,
+      "text": "lab_d1381a318b_75522ec9_control confirmed\n\n3 seats\n\nUpdate seats for lab_d1381a318b_75522ec9_control\nUpdate seats Cancel booking",
+      "url": "https://fixture-lab:3002/"
+    },
+    "hash": "ab42b4ea4f29e2befdc27c66c606a95165e0dc70e65f9226d6ac4fa279611ba8"
+  },
+  "independentStore": [
+    {
+      "name": "lab_d1381a318b_75522ec9_control",
+      "seats": 3,
+      "status": "confirmed"
+    }
+  ],
+  "finding": {
+    "status": "verified",
+    "lifecycle": "fixed"
+  },
+  "passed": true,
+  "closed": true,
+  "finishedAt": "2026-10-27T07:40:15.086Z",
+  "limits": "Scripted local independent verification and retest, not autonomous exploration or a Fly/public-site proof. The fixed target was changed between fresh browser runs."
+}

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 export * from './actions';
 export * from './authorization';
+export * from './assertions';
 import {runAuthorization,type RunAuthorization} from './authorization';
 
 export const runStatuses = ['queued','provisioning','running','waiting_for_input','stopping','finalizing','completed','stopped','failed','blocked'] as const;
@@ -11,7 +12,7 @@ export const siteInput = z.object({ name: z.string().trim().min(1).max(80), orig
 export const runInput = z.object({ siteId: z.string().uuid(), goal: z.string().trim().min(10).max(3000), writes: z.boolean(), registration: z.boolean().default(false), rules: z.string().trim().max(4000).default(''), authorization:runAuthorization });
 export type RunInput=z.infer<typeof runInput>;
 export type Site = { id:string; name:string; origin:string; environment:'staging'|'production'; verifiedAt:string|null; revision:number; createdAt:string };
-export type Run = { id:string; siteId:string|null; siteName:string; origin:string; goal:string; status:RunStatus; stopReason:string|null; createdAt:string; startedAt:string|null; finishedAt:string|null; actions:number; turns:number; spentMicros:number; fundingAccount:'public'|'development'|'judge'; kind:'verified_site'|'demo'; approvedScope?:{hash:string;grant:RunAuthorization;activeOrigins:{origin:string;revision:number}[]}; };
+export type Run = { id:string; siteId:string|null; siteName:string; origin:string; goal:string; status:RunStatus; stopReason:string|null; createdAt:string; startedAt:string|null; finishedAt:string|null; actions:number; turns:number; spentMicros:number; fundingAccount:'public'|'development'|'judge'; kind:'verified_site'|'demo'; execution?:'exploration'|'assertion'; approvedScope?:{hash:string;grant:RunAuthorization;activeOrigins:{origin:string;revision:number}[]}; };
 export type RunEvent = { id:number; runId:string; kind:string; message:string; createdAt:string; data:Record<string,unknown> };
 export type Finding = { id:string; runId:string; title:string; status:'candidate'|'verifying'|'verified'|'inconclusive'|'dismissed'; lifecycle:'open'|'fixed'|'regressed'|null; category:'verified_issue'|'configuration_observation'|'needs_review'|'suggestion'; severity:'high'|'medium'|'low'|'info'; rule:string; observed:string; hypothesis:string|null; evidence:Record<string,unknown>; assertionVersion:string; createdAt:string };
 export type Workspace = { identity:{id:string;name:string;local:boolean}|null; sites:Site[]; runs:Run[]; remainingRuns:number; availability:{database:boolean;github:boolean;meta:boolean;browser:boolean;publicLaunch:boolean}; };

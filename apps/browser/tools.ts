@@ -1,6 +1,6 @@
 import {createHash,randomBytes} from 'node:crypto';
 import type {Browser,BrowserContext,Page,ElementHandle} from 'playwright';
-import {browserAction,browserObservation,type BrowserAction,type BrowserObservation,type BrowserScope} from '@oddhound/contracts';
+import {browserAction,browserObservation,recordInspection,type RecordSample,type BrowserAction,type BrowserObservation,type BrowserScope} from '@oddhound/contracts';
 import {toolDestination,displayUrl} from './policy';
 type Actor='primary'|'secondary';type Profile='desktop'|'mobile';
 type Role={context:BrowserContext;page:Page;profile:Profile;sensitive:boolean};
@@ -58,6 +58,18 @@ export class BrowserTools{
       }
     }
     await this.fence();await role.page.waitForLoadState('domcontentloaded',{timeout:3000}).catch(()=>{});return this.observe();
+  }
+  async inspectRecord(raw:unknown):Promise<RecordSample>{
+    await this.fence();const input=recordInspection.parse(raw),page=this.role().page;toolDestination(this.scope,page.url());
+    const heading=page.getByRole('heading',{name:input.heading,exact:true}),guardObserved=await heading.count()===1&&await heading.isVisible();
+    const records=page.getByRole(input.role).filter({has:page.getByText(input.anchor,{exact:true})}),count=await records.count();
+    let text='',value:number|null=null;
+    if(count===1&&await records.isVisible()){
+      text=await records.innerText({timeout:3000});if(text.length>1500)throw new Error('assertion_record_limit');
+      const values=text.split('\n').map(s=>s.trim()).filter(s=>s.startsWith(input.valuePrefix)&&s.endsWith(input.valueSuffix)).map(s=>s.slice(input.valuePrefix.length,input.valueSuffix.length?-input.valueSuffix.length:undefined).trim()).filter(s=>/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(s)).map(Number).filter(Number.isFinite);
+      if(values.length===1)value=values[0];
+    }
+    return{guardObserved,recordCount:Math.min(count,201),value,text:this.clean(text),url:this.clean(displayUrl(page.url()))};
   }
   async close(){this.stopped=true;await this.clearTargets();await Promise.all([...this.roles.values()].map(r=>r.context.close().catch(()=>{})));this.credentials.clear();}
 }

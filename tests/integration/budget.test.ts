@@ -2,8 +2,32 @@ import {test,after} from 'node:test';import assert from 'node:assert/strict';
 import {getPool} from '../../packages/db';
 import {reserveCall,settleCall,unknownCall,releaseUnusedBudget,admitAction} from '../../packages/db/budget';
 import {changeCredential,revokeSiteProof} from '../../packages/db/revocation';import {randomBytes} from 'node:crypto';
+import {freezeAssertion,assertionDetail,loadAssertionTask,finishAssertionAttempt,abandonAssertionAttempt} from '../../packages/db/assertions';import {assertionHash,evaluateRecordEvidence} from '@oddhound/checks';import {numericAssertion} from '../../apps/fixture/assertion';
 if(!new URL(process.env.DATABASE_URL??'postgres://invalid').pathname.endsWith('_test'))throw new Error('Integration tests require a dedicated _test database');
 const pool=getPool();after(()=>pool.end());
+
+test('SQL freezes owner assertions, isolates tenants and preserves failed/passed/blocked regression history',async()=>{
+  await pool.query("UPDATE public_budget SET kill_switch=false WHERE id='public'");
+  const source=(await pool.query("INSERT INTO runs(owner_id,goal,scope,status,held_micros) VALUES('assertion-owner','Synthetic assertion test',$1,'completed',0) RETURNING id",[{origin:'https://owned.example'}])).rows[0].id;
+  const f=(await pool.query("INSERT INTO findings(run_id,title,status,category,severity,rule,observed,assertion_version) VALUES($1,'Numeric boundary','candidate','needs_review','info','Model proposal','Synthetic candidate','candidate') RETURNING id",[source])).rows[0].id;
+  const spec=numericAssertion(),hash=assertionHash(spec);await assert.rejects(freezeAssertion('other-owner',f,spec),/not_found/);await freezeAssertion('assertion-owner',f,spec);
+  assert.equal((await pool.query('SELECT evidence FROM findings WHERE id=$1',[f])).rows[0].evidence.originalCandidateRule,'Model proposal');
+  await assert.rejects(freezeAssertion('assertion-owner',f,spec),/assertion_already_frozen/);await assert.rejects(assertionDetail('other-owner',f),/not_found/);
+  await assert.rejects(pool.query('UPDATE finding_assertions SET spec=$2 WHERE finding_id=$1',[f,{...spec,probe:-2}]),/assertion_is_immutable/);await assert.rejects(pool.query("UPDATE findings SET rule='Weakened' WHERE id=$1",[f]),/finding_assertion_is_immutable/);
+  const makeRun=async(hashValue=hash)=>{const r=(await pool.query("INSERT INTO runs(owner_id,goal,scope,status,held_micros,expires_at) VALUES('assertion-owner','Replay unchanged assertion',$1,'running',0,now()+interval '15 minutes') RETURNING id",[{origin:spec.origin,assertionTask:{findingId:f,hash:hashValue}}])).rows[0].id;await pool.query("INSERT INTO assertion_retests(finding_id,assertion_version,assertion_hash,status,run_id,purpose) VALUES($1,$2,$2,'not_run',$3,'retest')",[f,hash,r]);return r;};
+  const sample=(value:number|null)=>({guardObserved:true,recordCount:value===null?0:1,value,text:value===null?'':`${value} seats`,url:spec.origin+'/'}),failure=evaluateRecordEvidence(spec,sample(3),sample(-1),sample(3)),success=evaluateRecordEvidence(spec,sample(3),sample(null),sample(3));
+  const initial=await makeRun();assert.equal((await loadAssertionTask(initial)).hash,hash);await assert.rejects(finishAssertionAttempt(initial,1,{status:'passed',reason:'invented'}));await finishAssertionAttempt(initial,1,failure);assert.equal((await pool.query('SELECT lifecycle FROM findings WHERE id=$1',[f])).rows[0].lifecycle,'open');await assert.rejects(finishAssertionAttempt(initial,1,success),/assertion_attempt_not_pending/);
+  const retest=await makeRun();await finishAssertionAttempt(retest,1,success);assert.equal((await pool.query('SELECT lifecycle FROM findings WHERE id=$1',[f])).rows[0].lifecycle,'fixed');
+  const blocked=await makeRun();await finishAssertionAttempt(blocked,1,{status:'blocked',reason:'assertion_locator_missing'});assert.equal((await pool.query('SELECT lifecycle FROM findings WHERE id=$1',[f])).rows[0].lifecycle,'fixed');
+  const regressed=await makeRun();await finishAssertionAttempt(regressed,1,failure);assert.equal((await pool.query('SELECT lifecycle FROM findings WHERE id=$1',[f])).rows[0].lifecycle,'regressed');
+  const fenced=await makeRun();await pool.query('UPDATE runs SET generation=2 WHERE id=$1',[fenced]);await assert.rejects(finishAssertionAttempt(fenced,1,success),/run_fenced/);await abandonAssertionAttempt(fenced,'run_fenced');assert.equal((await pool.query('SELECT lifecycle FROM findings WHERE id=$1',[f])).rows[0].lifecycle,'regressed');
+  const altered=await makeRun('a'.repeat(64));await assert.rejects(loadAssertionTask(altered),/assertion_integrity_failed/);
+  await assert.rejects(pool.query("UPDATE assertion_retests SET status='passed' WHERE run_id=$1",[initial]),/assertion_attempt_is_immutable/);
+  const tenantMismatch=await makeRun();await pool.query("UPDATE runs SET owner_id='other-owner' WHERE id=$1",[tenantMismatch]).then(()=>assert.fail('Run owner mutation must be refused'),e=>assert.match(e.message,/run_contract_is_immutable/));
+  const foreign=(await pool.query("INSERT INTO runs(owner_id,goal,scope,status,held_micros,expires_at) VALUES('other-owner','Foreign assertion attempt',$1,'running',0,now()+interval '15 minutes') RETURNING id",[{origin:spec.origin,assertionTask:{findingId:f,hash}}])).rows[0].id;
+  await pool.query("INSERT INTO assertion_retests(finding_id,assertion_version,assertion_hash,status,run_id,purpose) VALUES($1,$2,$2,'not_run',$3,'verification')",[f,hash,foreign]);await assert.rejects(finishAssertionAttempt(foreign,1,success),/assertion_tenant_or_task_mismatch/);await assert.rejects(loadAssertionTask(foreign),/assertion_integrity_failed/);
+  const detail=await assertionDetail('assertion-owner',f);assert.equal(detail!.hash,hash);assert.deepEqual(detail!.attempts.map(a=>a.status).sort(),['failed','failed','passed','blocked','inconclusive','not_run','not_run','not_run'].sort());
+});
 test('real SQL serializes competing reservations, fences writes, and retains uncertain cost',async()=>{
   await pool.query('TRUNCATE assertion_retests,artifacts,credentials,browser_machines,browser_allocations,findings,run_events,run_outbox,action_ledger,call_ledger,runs,sites CASCADE');
   await pool.query("UPDATE public_budget SET held=2000000,lifetime_spent=0,day_spent=0,kill_switch=false WHERE id='public'");

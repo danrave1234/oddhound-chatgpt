@@ -1,0 +1,14 @@
+{
+  "profile": "owned-lab-v1",
+  "browserDependency": "playwright@1.64.1",
+  "actualChromium": "156.0.8078.4",
+  "node": "26.12.1",
+  "sandbox": {"enabled": true, "uid": 1101},
+  "images": [
+    {"image": "sha256:4a3f850ed587eda6fd1d9c40bacdd8f06b951d5a55436e3f7ecfb3a5b5c6b1a9", "verification": "9f29f2bb-e7bf-4f54-bfec-2352aee2fe2b", "retest": "75522ec9-472f-44e2-bbf1-b1eee72d366c", "workflowRegression": "a1c2829d-7493-48cf-8968-44cc5b4875e9", "mappedRegression": "0f7cec6e-2fa4-4611-af93-7be4a3333263"},
+    {"image": "sha256:ff2d1972f23ce953d7728001b17343cd4554959e46d1982d1dd08ad46f494bf8", "retest": "da814d01-3f88-4b15-8f8d-1f6862d57787", "change": "Copy the new checks workspace manifest before the frozen install so a clean image build resolves all workspace dependencies."}
+  ],
+  "flyDeployed": false,
+  "publicLaunchCleared": false,
+  "platformCredentialsInGuest": false
+}
