@@ -35,6 +35,18 @@ CREATE TABLE IF NOT EXISTS artifacts(id uuid PRIMARY KEY DEFAULT gen_random_uuid
 CREATE TABLE IF NOT EXISTS assertion_retests(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),finding_id uuid NOT NULL REFERENCES findings(id),assertion_version text NOT NULL,assertion_hash text NOT NULL,status text NOT NULL CHECK(status IN ('not_run','passed','failed','blocked','inconclusive','skipped')),evidence jsonb NOT NULL DEFAULT '{}',created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS worker_heartbeats(id text PRIMARY KEY,last_seen timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS browser_allocations(run_id uuid PRIMARY KEY REFERENCES runs(id),state text NOT NULL,expires_at timestamptz NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),cleanup_error text);
+CREATE TABLE IF NOT EXISTS browser_compute_budget(
+ id text PRIMARY KEY CHECK(id='browser'),enabled boolean NOT NULL DEFAULT false,
+ region text NOT NULL CHECK(region~'^[a-z]{3}$'),hourly_micros bigint NOT NULL CHECK(hourly_micros>0),
+ overhead_micros bigint NOT NULL CHECK(overhead_micros>0),cleanup_seconds integer NOT NULL CHECK(cleanup_seconds BETWEEN 60 AND 600),
+ limit_micros bigint NOT NULL CHECK(limit_micros>0),spent_micros bigint NOT NULL DEFAULT 0 CHECK(spent_micros>=0),held_micros bigint NOT NULL DEFAULT 0 CHECK(held_micros>=0),
+ rate_source text NOT NULL,rate_expires_at timestamptz NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),
+ CHECK(spent_micros+held_micros<=limit_micros));
+CREATE TABLE IF NOT EXISTS browser_compute_reservations(
+ run_id uuid PRIMARY KEY REFERENCES runs(id),generation integer NOT NULL,state text NOT NULL CHECK(state IN ('held','charged')),
+ reserved_micros bigint NOT NULL CHECK(reserved_micros>0),charged_micros bigint NOT NULL DEFAULT 0 CHECK(charged_micros>=0),
+ profile jsonb NOT NULL,cleanup_deadline timestamptz NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),settled_at timestamptz,
+ CHECK((state='held' AND charged_micros=0 AND settled_at IS NULL) OR (state='charged' AND charged_micros=reserved_micros AND settled_at IS NOT NULL)));
 ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS state text NOT NULL DEFAULT 'ready' CHECK(state IN ('staged','ready'));
 ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS storage_backend text NOT NULL DEFAULT 'filesystem' CHECK(storage_backend IN ('filesystem','postgres'));
 CREATE TABLE IF NOT EXISTS artifact_content(artifact_id uuid PRIMARY KEY REFERENCES artifacts(id) ON DELETE CASCADE,content bytea NOT NULL CHECK(octet_length(content) BETWEEN 33 AND 1048576));

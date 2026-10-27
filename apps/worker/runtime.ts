@@ -2,6 +2,7 @@ import {randomBytes} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isIP} from 'node:net';
 import {getPool} from '@oddhound/db';
+import {reserveBrowserCompute,settleBrowserCompute} from '../../packages/db/compute';
 import {seal} from '../../packages/db/vault';
 import type {Action} from '@oddhound/agent';
 import type {Observation} from './engine';
@@ -43,14 +44,14 @@ export class BrowserRuntime{
   async execute(action:Exclude<Action,{name:'finish_run'}>,key:string){return browserObservation.parse(await this.call<Observation>('action',{action,key}));}
   requestStop(){return this.call<{closed:boolean}>('stop',{},AbortSignal.timeout(4500));}
 }
-export async function provision(runId:string,scope:unknown,expiresAt:Date,signal:AbortSignal){
+export async function provision(runId:string,generation:number,scope:unknown,expiresAt:Date,signal:AbortSignal){
   const image=await runtimeGate(),browserApp=app(),path=randomBytes(32).toString('hex'),runScope=guestRunScope(scope,expiresAt);
   const sources=trustedControlSources();
-  // Region/rate/compute headroom must be supplied before any paid Machine creation.
-  if(!(Number(process.env.ODDHOUND_COMPUTE_PER_RUN_USD)>0)||!(Number(process.env.ODDHOUND_COMPUTE_AVAILABLE_USD)>=Number(process.env.ODDHOUND_COMPUTE_PER_RUN_USD)))throw new Error('compute_budget_not_configured');
-  await getPool().query("INSERT INTO browser_allocations(run_id,state,expires_at) VALUES($1,'sent',$2)",[runId,expiresAt]);
+  signal.throwIfAborted();
+  const region=process.env.ODDHOUND_FLY_REGION??'sin';
+  await reserveBrowserCompute(runId,generation,region,expiresAt);
   let machine:Machine;
-  try{machine=await fly(`/apps/${browserApp}/machines`,'POST',{name:`run-${runId.slice(0,8)}`,region:process.env.ODDHOUND_FLY_REGION??'sin',config:{image,auto_destroy:true,restart:{policy:'no'},guest:{cpu_kind:'shared',cpus:1,memory_mb:2048},metadata:{oddhound_run_id:runId,oddhound_expires_at:expiresAt.toISOString()},env:{ODDHOUND_RUN_ID:runId,ODDHOUND_RUN_PATH:path,ODDHOUND_EXPIRES_AT:expiresAt.toISOString(),ODDHOUND_TRUSTED_WEB_IPS:sources.join(','),ODDHOUND_SCOPE:JSON.stringify(runScope)},services:[]}});}catch(error){await getPool().query("UPDATE browser_allocations SET state='unknown' WHERE run_id=$1",[runId]);throw error;}
+  try{signal.throwIfAborted();machine=await fly(`/apps/${browserApp}/machines`,'POST',{name:`run-${runId.slice(0,8)}`,region,config:{image,auto_destroy:true,restart:{policy:'no'},guest:{cpu_kind:'shared',cpus:1,memory_mb:2048},metadata:{oddhound_run_id:runId,oddhound_expires_at:expiresAt.toISOString()},env:{ODDHOUND_RUN_ID:runId,ODDHOUND_RUN_PATH:path,ODDHOUND_EXPIRES_AT:expiresAt.toISOString(),ODDHOUND_TRUSTED_WEB_IPS:sources.join(','),ODDHOUND_SCOPE:JSON.stringify(runScope)},services:[]}});}catch(error){await getPool().query("UPDATE browser_allocations SET state='unknown' WHERE run_id=$1",[runId]);throw error;}
   if(!machine?.id||!machine.private_ip)throw new Error('invalid_machine_response');
   await getPool().query("INSERT INTO browser_machines(run_id,machine_id,app,image,private_ip,control_cipher,state,expires_at) VALUES($1,$2,$3,$4,$5,$6,'provisioning',$7)",[runId,machine.id,browserApp,image,machine.private_ip,seal(path,runId),expiresAt]);
   await getPool().query("UPDATE browser_allocations SET state='known' WHERE run_id=$1",[runId]);
@@ -60,13 +61,13 @@ export async function provision(runId:string,scope:unknown,expiresAt:Date,signal
   await getPool().query("UPDATE browser_machines SET state='active',sandbox=$2 WHERE run_id=$1",[runId,verdict.sandbox]);return browser;
 }
 export async function destroy(runId:string){
-  const row=(await getPool().query('SELECT * FROM browser_machines WHERE run_id=$1',[runId])).rows[0];if(row?.state==='terminated')return true;
-  if(!row){const allocation=(await getPool().query('SELECT * FROM browser_allocations WHERE run_id=$1',[runId])).rows[0];if(!allocation)return true;
+  const row=(await getPool().query('SELECT * FROM browser_machines WHERE run_id=$1',[runId])).rows[0];if(row?.state==='terminated'){await settleBrowserCompute(runId);return true;}
+  if(!row){const allocation=(await getPool().query('SELECT * FROM browser_allocations WHERE run_id=$1',[runId])).rows[0];if(!allocation)return !(await getPool().query("SELECT 1 FROM browser_compute_reservations WHERE run_id=$1 AND state='held'",[runId])).rowCount;
     // A timed-out create may still produce a Machine. Keep its slot through the bounded lifetime.
-    try{const matches:Machine[]=(await fly(`/apps/${app()}/machines`)??[]).filter((m:Machine)=>m.config?.metadata?.oddhound_run_id===runId);for(const m of matches)await fly(`/apps/${app()}/machines/${m.id}?force=true`,'DELETE');if(new Date(allocation.expires_at).getTime()+60000>Date.now())return false;const remaining:Machine[]=await fly(`/apps/${app()}/machines`)??[];return !remaining.some(m=>m.config?.metadata?.oddhound_run_id===runId);}catch{return false;}}
+    try{const matches:Machine[]=(await fly(`/apps/${app()}/machines`)??[]).filter((m:Machine)=>m.config?.metadata?.oddhound_run_id===runId);for(const m of matches)await fly(`/apps/${app()}/machines/${m.id}?force=true`,'DELETE');if(new Date(allocation.expires_at).getTime()+60000>Date.now())return false;const remaining:Machine[]=await fly(`/apps/${app()}/machines`)??[];if(remaining.some(m=>m.config?.metadata?.oddhound_run_id===runId))return false;await settleBrowserCompute(runId);return true;}catch{return false;}}
   await getPool().query("UPDATE browser_machines SET state='terminating' WHERE run_id=$1",[runId]);
   try{await fly(`/apps/${row.app}/machines/${row.machine_id}?force=true`,'DELETE');const after=await fly(`/apps/${row.app}/machines/${row.machine_id}`);if(after&&after.state!=='destroyed')throw new Error('machine_deletion_unconfirmed');
-    await getPool().query("UPDATE browser_machines SET state='terminated',deleted_at=now(),cleanup_error=NULL WHERE run_id=$1",[runId]);return true;
+    await getPool().query("UPDATE browser_machines SET state='terminated',deleted_at=now(),cleanup_error=NULL WHERE run_id=$1",[runId]);await settleBrowserCompute(runId);return true;
   }catch(error){await getPool().query('UPDATE browser_machines SET cleanup_error=$2 WHERE run_id=$1',[runId,(error as Error).message]);return false;}
 }
 export async function reapOrphans(){

@@ -5,6 +5,6 @@
     "resolveJsonModule": true, "allowJs": true, "noEmit": true, "baseUrl": ".",
     "paths": { "@oddhound/*": ["packages/*/index.ts"], "@ui/*": ["packages/ui/*"] }
   },
-  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "packages/**/*.tsx", "tests/**/*.ts"],
+  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "packages/**/*.tsx", "tests/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "apps/web/.next", "apps/web/.next-build"]
 }

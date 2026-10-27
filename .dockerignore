@@ -6,5 +6,6 @@ test-results
 .env*
 !.env.example
 .git
+.vercel
 .pnpm-store
 **/dist

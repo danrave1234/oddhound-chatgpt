@@ -35,8 +35,8 @@ async function processRun(id:string){
     assertAuthorizationCurrent(approved,row.scope.authorizationHash,activeSites,credentials);
     for(const api of approved.apiOrigins){const active=activeSites.find((s:any)=>s.id===api.siteId);await checkOwnership(active.origin,active.verification_token,active.verification_method);await fence();}
     const values=approved.credentialBindings.map((binding:any)=>{const c=credentials.find((c:any)=>c.id===binding.id);return{reference:c.reference,actor:binding.actor,value:unseal(c.secret_cipher,`${row.owner_id}:${site.id}:${c.reference}`)};});
-    const sanitize=(text:string)=>scrub(text,[...values.map((c:any)=>c.value),...['META_API_KEY','FLY_API_TOKEN','BETTER_AUTH_SECRET','DATABASE_URL','ODDHOUND_VAULT_KEY','GITHUB_CLIENT_SECRET'].map(k=>process.env[k]??'')]);
-    const browser=await provision(id,{...row.scope,expiresAt:row.expires_at},new Date(row.expires_at),signal);activeBrowser=browser;
+    const sanitize=(text:string)=>scrub(text,[...values.map((c:any)=>c.value),...activeSites.map((s:any)=>s.verification_token),...['META_API_KEY','FLY_API_TOKEN','BETTER_AUTH_SECRET','DATABASE_URL','ODDHOUND_VAULT_KEY','GITHUB_CLIENT_SECRET','VERCEL_OIDC_TOKEN'].map(k=>process.env[k]??'')]);
+    const browser=await provision(id,generation,{...row.scope,expiresAt:row.expires_at},new Date(row.expires_at),signal);activeBrowser=browser;
     await browser.call('initialize',{credentials:values});await fence();
     await pool.query("UPDATE runs SET status='running' WHERE id=$1 AND generation=$2",[id,generation]);await event(id,'run.running',row.scope.assertionTask?'Ownership rechecked. The isolated browser is replaying the saved assertion.':'Ownership rechecked. The isolated browser is exploring.');
     if(row.scope.assertionTask)await runVerification({id,generation,namespace:approved.guest.namespace,browser,signal,fence,sanitize});

@@ -1,5 +1,5 @@
 {
-  "createdAt": "2026-10-27T10:34:48.375Z",
+  "createdAt": "2026-10-27T11:44:49.340Z",
   "provider": "Neon",
   "plan": "free_v3",
   "region": "sin1",
@@ -18,7 +18,7 @@
   "directSessionConnection": true,
   "migrationsPassed": true,
   "integrationTestsPassed": true,
-  "tests": 10,
+  "tests": 12,
   "modelInference": false,
-  "claims": "Actual hosted isolated _test database integration, including BullMQ PostgreSQL delivery and private artifact persistence. Client TLS is verified on the actual connection socket; backend pg_stat_ssl is recorded separately. No website scan, OAuth sign-in, public launch or complete release gate claim."
+  "claims": "Actual hosted isolated _test database integration, including BullMQ PostgreSQL delivery, private artifact persistence and atomic browser compute accounting. Compute rates/provider cleanup responses are synthetic in these integration tests. Client TLS is verified on the actual connection socket; backend pg_stat_ssl is recorded separately. No website scan, OAuth sign-in, public launch or complete release gate claim."
 }

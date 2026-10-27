@@ -20,7 +20,7 @@ Private screenshot delivery and the actual browser tool path are implemented. Ty
 
 ## Evidence
 
-The current recorded results are **39 passing focused tests**, **10 passing local PostgreSQL integration tests**, **10 passing hosted PostgreSQL integration tests**, TypeScript validation and a successful production web image build. Fifteen actual browser-tool checks and eleven mapped-policy canaries also pass on the owned HTTPS fixture. Deployed Fly startup/control/native-egress checks pass with sandboxing enabled. These are component results, not a full release verdict. See [hosted execution evidence](docs/HOSTED_EXECUTION.md).
+The current recorded results are **39 passing focused tests**, **12 passing local PostgreSQL integration tests**, **12 passing hosted PostgreSQL integration tests**, TypeScript validation and successful production web/worker image builds. Fifteen actual browser-tool checks and eleven mapped-policy canaries also pass on the owned HTTPS fixture. Deployed Fly startup/control/native-egress and controller-crash recovery checks pass with sandboxing enabled. The new [compute ledger](docs/COMPUTE_ACCOUNTING.md) uses real SQL with synthetic pricing/provider responses in its tests. These are component results, not a full release verdict. See [hosted execution evidence](docs/HOSTED_EXECUTION.md).
 
 Direct Meta authentication and two actual `muse-spark-1.3` tool calls passed on October 27, 2026. Accounted usage was **$0.004119** under a $0.10 reservation. The tool observation was synthetic; no website was scanned. See [provider evidence](docs/PROVIDER_SMOKE_TESTS.md).
 

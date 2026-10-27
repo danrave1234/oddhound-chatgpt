@@ -54,6 +54,8 @@ Observation metadata is capped at 64 KiB even without a screenshot. Polling/SSE 
 
 ## Validation and access
 
+The compute-ledger follow-up raises local and hosted SQL coverage to 12 passing tests, with 39 focused tests and unchanged browser regressions. Its price/provider/time fixtures are synthetic; no production compute funding was enabled. [COMPUTE_ACCOUNTING.md](COMPUTE_ACCOUNTING.md) owns the new reservation and overdue-cleanup behavior. Full public execution remains disabled.
+
 This slice passes 39 focused tests (synthetic model transports), 10 local PostgreSQL integration tests, 10 hosted PostgreSQL integration tests, TypeScript, 15 real browser workflow checks, 11 mapped-policy canaries and four Python policy tests. Dependency audit reports no known vulnerabilities; import policy passes for 89 source files including the manual lifecycle probe. Actual deployed worker/reaper Node versions, hosted HTTP checks, sandbox/private control/native egress and the controller-exit case are recorded separately above. No additional Meta inference occurred; the last actual product model remains Direct Meta `muse-spark-1.3`. Development model spend remains $3.285349 of $5, with no held/unknown usage. The $15 judging reserve remains unused. Full public admission stays disabled.
 
 Production and Neon database connections now force `sslmode=verify-full`, including when the provisioned URL requests weaker verification. Idle pool errors are handled without logging credentials. `/api/status` reports the actual web Node runtime for deployment verification.

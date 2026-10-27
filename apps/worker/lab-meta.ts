@@ -12,7 +12,7 @@ if(!process.env.META_API_KEY)throw new Error('meta_not_configured');
 const pool=getPool(),fixture=openPool(process.env.FIXTURE_DATABASE_URL!),controller=new AbortController(),signal=controller.signal,inputPrice=1.25,outputPrice=4.25,corrected=process.env.ODDHOUND_LAB_EXPECT_CORRECTED==='1';
 const goal=demoGoal,rules=demoRules;
 const evidence:Record<string,unknown>={runId:id,startedAt:new Date().toISOString(),provider:'Direct Meta',model:MODEL,profile:'owned-lab-v1',autonomous:true,scripted:false,seedKnowledgeProvided:false,paidCeilingUsd:2,fundingAccount:'development',inputUsdPerMillion:inputPrice,outputUsdPerMillion:outputPrice,pricingSource:'https://dev.meta.ai/models/muse-spark',imagesSent:false};
-const sanitize=(value:string)=>scrub(value,[capability,...['META_API_KEY','FLY_API_TOKEN','DATABASE_URL','GITHUB_CLIENT_SECRET','BETTER_AUTH_SECRET','ODDHOUND_VAULT_KEY'].map(k=>process.env[k]??'')]);
+const sanitize=(value:string)=>scrub(value,[capability,...['META_API_KEY','FLY_API_TOKEN','DATABASE_URL','GITHUB_CLIENT_SECRET','BETTER_AUTH_SECRET','ODDHOUND_VAULT_KEY','VERCEL_OIDC_TOKEN'].map(k=>process.env[k]??'')]);
 async function rpc<T>(method:string,data:unknown={}):Promise<T>{
   const response=await fetch(`http://172.30.73.30:3001/${capability}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.any([method==='stop'?AbortSignal.timeout(4500):signal,AbortSignal.timeout(20000)]),redirect:'error'});
   const reader=response.body?.getReader();if(!reader)throw new Error('browser_response_missing');let length=0;const chunks:Uint8Array[]=[];

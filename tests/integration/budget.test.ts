@@ -7,8 +7,67 @@ import {startOwnedDemo,claimOwnedDemo,finishOwnedDemo,localDemoEnabled} from '..
 import {saveObservation,readArtifact} from '../../packages/db/artifacts';import {createHash} from 'node:crypto';
 import {eventDataProjection,readEvent} from '../../packages/db/events';
 import {claimQueuedRun} from '../../apps/worker/claim';
+import {configureBrowserCompute,reserveBrowserCompute,settleBrowserCompute,fenceOverdueBrowserCompute,type ComputeConfiguration} from '../../packages/db/compute';
+import {destroy} from '../../apps/worker/runtime';
 if(!new URL(process.env.DATABASE_URL??'postgres://invalid').pathname.endsWith('_test'))throw new Error('Integration tests require a dedicated _test database');
 const pool=getPool();after(()=>pool.end());
+
+const computeQuote=():ComputeConfiguration=>({enabled:true,region:'sin',hourlyMicros:3600,overheadMicros:17,cleanupSeconds:120,limitMicros:100000,rateSource:'https://example.invalid/synthetic-rate',rateExpiresAt:new Date(Date.now()+3600000)});
+const computeRun=async()=>{const row=(await pool.query("INSERT INTO runs(owner_id,goal,scope,status,held_micros,lease_until,expires_at) VALUES('compute-test','Synthetic compute reservation','{}','provisioning',0,now()+interval '45 seconds',now()+interval '60 seconds') RETURNING id,expires_at")).rows[0];return{id:row.id as string,expiresAt:new Date(row.expires_at)};};
+
+test('SQL reserves regional browser compute once under races and never resets charged or uncertain funds',async()=>{
+  await pool.query("UPDATE public_budget SET kill_switch=false WHERE id='public'");
+  await pool.query('DELETE FROM browser_compute_reservations');await pool.query('DELETE FROM browser_compute_budget');
+  await configureBrowserCompute(computeQuote());
+  const first=await computeRun(),second=await computeRun();
+  try{
+    const attempts=await Promise.allSettled([reserveBrowserCompute(first.id,1,'sin',first.expiresAt),reserveBrowserCompute(second.id,1,'sin',second.expiresAt)]);
+    assert.equal(attempts.filter(r=>r.status==='fulfilled').length,1);assert.equal(attempts.filter(r=>r.status==='rejected'&&r.reason.message==='browser_capacity_busy').length,1);
+    const winner=attempts[0].status==='fulfilled'?first:second,loser=winner===first?second:first;
+    const held=Number((await pool.query("SELECT held_micros FROM browser_compute_budget WHERE id='browser'")).rows[0].held_micros);assert(held>137&&held<=197);
+    await assert.rejects(reserveBrowserCompute(winner.id,1,'sin',winner.expiresAt),/browser_already_allocated/);
+    await assert.rejects(configureBrowserCompute({...computeQuote(),hourlyMicros:7200}),/compute_rate_change_with_live_reservations/);
+    await assert.rejects(configureBrowserCompute({...computeQuote(),limitMicros:held-1}),/compute_allocation_below_committed/);
+    await configureBrowserCompute({...computeQuote(),enabled:false});
+    await settleBrowserCompute(winner.id);await settleBrowserCompute(winner.id);
+    const balance=(await pool.query("SELECT held_micros,spent_micros FROM browser_compute_budget WHERE id='browser'")).rows[0];assert.equal(Number(balance.held_micros),0);assert.equal(Number(balance.spent_micros),held);
+    await pool.query("UPDATE runs SET status='blocked' WHERE id=$1",[winner.id]);
+    await configureBrowserCompute({...computeQuote(),limitMicros:held});await assert.rejects(reserveBrowserCompute(loser.id,1,'sin',loser.expiresAt),/compute_budget_exhausted/);
+    assert.equal(Number((await pool.query("SELECT spent_micros FROM browser_compute_budget WHERE id='browser'")).rows[0].spent_micros),held);
+    assert.equal((await pool.query('SELECT 1 FROM browser_allocations WHERE run_id=$1',[loser.id])).rowCount,0);
+  }finally{
+    await pool.query('DELETE FROM browser_compute_reservations');await pool.query('DELETE FROM browser_compute_budget');await pool.query("UPDATE runs SET status='blocked' WHERE id=ANY($1::uuid[])",[[first.id,second.id]]);
+  }
+});
+
+test('unknown create keeps compute held through cleanup failure and the late-create window; confirmed deletion settles once',async()=>{
+  const saved={FLY_API_TOKEN:process.env.FLY_API_TOKEN,ODDHOUND_BROWSER_APP:process.env.ODDHOUND_BROWSER_APP,FLY_APP_NAME:process.env.FLY_APP_NAME},originalFetch=globalThis.fetch;
+  let calls=0,providerFails=true;
+  globalThis.fetch=(async()=>{calls++;return providerFails?new Response('{}',{status:503}):new Response('[]',{status:200});}) as typeof fetch;
+  process.env.FLY_API_TOKEN='synthetic-no-network-token';process.env.ODDHOUND_BROWSER_APP='synthetic-browser';process.env.FLY_APP_NAME='synthetic-worker';
+  await configureBrowserCompute(computeQuote());const run=await computeRun();
+  try{
+    await assert.rejects(reserveBrowserCompute(run.id,2,'sin',run.expiresAt),/run_fenced/);
+    await assert.rejects(reserveBrowserCompute(run.id,1,'iad',run.expiresAt),/compute_budget_not_configured/);
+    await pool.query("UPDATE public_budget SET kill_switch=true WHERE id='public'");await assert.rejects(reserveBrowserCompute(run.id,1,'sin',run.expiresAt),/run_fenced/);await pool.query("UPDATE public_budget SET kill_switch=false WHERE id='public'");
+    await pool.query("UPDATE browser_compute_budget SET rate_expires_at=now()-interval '1 second' WHERE id='browser'");await assert.rejects(reserveBrowserCompute(run.id,1,'sin',run.expiresAt),/compute_budget_not_configured/);await configureBrowserCompute(computeQuote());
+    const held=await reserveBrowserCompute(run.id,1,'sin',run.expiresAt);await pool.query("UPDATE browser_allocations SET state='unknown' WHERE run_id=$1",[run.id]);
+    assert.equal(await destroy(run.id),false);providerFails=false;assert.equal(await destroy(run.id),false);
+    let balance=(await pool.query("SELECT held_micros,spent_micros FROM browser_compute_budget WHERE id='browser'")).rows[0];assert.equal(Number(balance.held_micros),held);assert.equal(Number(balance.spent_micros),0);
+    // Synthetic time advancement and recorded provider responses, not a Fly probe.
+    await pool.query("UPDATE browser_allocations SET expires_at=now()-interval '61 seconds' WHERE run_id=$1",[run.id]);
+    await pool.query("UPDATE browser_compute_reservations SET cleanup_deadline=now()-interval '1 second' WHERE run_id=$1",[run.id]);
+    assert.equal(await fenceOverdueBrowserCompute(),1);assert.equal(await fenceOverdueBrowserCompute(),0);assert.equal((await pool.query("SELECT enabled FROM browser_compute_budget WHERE id='browser'")).rows[0].enabled,false);
+    assert.equal((await pool.query("SELECT 1 FROM run_events WHERE run_id=$1 AND kind='browser.compute_cleanup_overdue'",[run.id])).rowCount,1);
+    await pool.query("UPDATE browser_compute_budget SET rate_expires_at=now()-interval '1 second' WHERE id='browser'");await pool.query("UPDATE public_budget SET kill_switch=true WHERE id='public'");
+    assert.equal(await destroy(run.id),true);assert.equal(await destroy(run.id),true);assert(calls>=5);
+    balance=(await pool.query("SELECT held_micros,spent_micros FROM browser_compute_budget WHERE id='browser'")).rows[0];assert.equal(Number(balance.held_micros),0);assert.equal(Number(balance.spent_micros),held);
+    assert.equal((await pool.query('SELECT state FROM browser_compute_reservations WHERE run_id=$1',[run.id])).rows[0].state,'charged');
+  }finally{
+    globalThis.fetch=originalFetch;for(const [key,value] of Object.entries(saved)){if(value===undefined)delete process.env[key];else process.env[key]=value;}
+    await pool.query('DELETE FROM browser_compute_reservations');await pool.query('DELETE FROM browser_compute_budget');await pool.query("UPDATE runs SET status='blocked' WHERE id=$1",[run.id]);await pool.query("UPDATE public_budget SET kill_switch=false WHERE id='public'");
+  }
+});
 
 test('the production queue claim honors the kill switch, refunds unstarted work and claims only once',async()=>{
   await pool.query("UPDATE public_budget SET held=2000000,kill_switch=true WHERE id='public'");
