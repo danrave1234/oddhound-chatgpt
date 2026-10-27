@@ -1,0 +1,24 @@
+{
+  "profile": "owned-lab-v1",
+  "localImageId": "sha256:daaff32c7a1624954ab5f335bbf6cee25052d1e0a6e026c2e7323ed59b07f9de",
+  "testedRuns": [
+    "bca50de7-ad40-49df-ad51-eab3ee51a508",
+    "86c60bf9-0295-4f30-a41b-e69857bdde3f"
+  ],
+  "chromiumVersion": "156.0.8078.4",
+  "sandboxUid": 1101,
+  "guestExitCode": 0,
+  "publishedRegistryImage": false,
+  "note": "Local component evidence only. CI builds have independent fingerprints; no Fly deployment.",
+  "historicalImages": [
+    {
+      "localImageId": "sha256:cdff98ae57969e4fd33e39cc22741eb87bb6c230d942b20ec3efee3037160748",
+      "runs": [
+        "49558d19-7372-4247-88d7-a31ab4f44b92",
+        "0fec1c9c-2fc5-4682-aed7-c4a497b6c588",
+        "a7838f81-db3e-4196-a583-d6cd6e4fa0a3"
+      ],
+      "note": "Initial form API checks passed; strengthened JSON API case failed before preflight handling."
+    }
+  ]
+}

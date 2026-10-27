@@ -1,8 +1,8 @@
 import {MetaAdapter,estimatedMicros,parseAction,systemPrompt,type Message,type Action,type Usage} from '@oddhound/agent';
-import {limits,type BrowserObservation} from '@oddhound/contracts';
+import {limits,type BrowserObservation,type GuestAuthorization} from '@oddhound/contracts';
 
 export type Observation=BrowserObservation;
-export type EngineScope={origin:string;goal:string;rules:string;writes:boolean;registration:boolean;references:string[]};
+export type EngineScope={origin:string;goal:string;rules:string;writes:boolean;registration:boolean;references:string[];authority?:GuestAuthorization};
 export type EngineDependencies={
   model:Pick<MetaAdapter,'complete'>; signal:AbortSignal;
   inputPrice:number;outputPrice:number;
@@ -12,10 +12,11 @@ export type EngineDependencies={
   record:(kind:string,message:string,data?:Record<string,unknown>)=>Promise<void>;
   findings:(candidates:{title:string;rule:string;observation:string}[])=>Promise<void>;
 };
-function boundedObservation(value:Observation,sanitize:(s:string)=>string){const text=JSON.stringify(value);if(Buffer.byteLength(text)>64000)throw new Error('observation_limit_exceeded');return sanitize(text).replaceAll('<','\\u003c').replaceAll('>','\\u003e');}
+function boundedObservation(value:Observation,sanitize:(s:string)=>string){const text=JSON.stringify(value,(_key,item)=>typeof item==='string'?sanitize(item):item);if(Buffer.byteLength(text)>64000)throw new Error('observation_limit_exceeded');return text.replaceAll('<','\\u003c').replaceAll('>','\\u003e');}
 export async function explore(scope:EngineScope,d:EngineDependencies){
   const initial=await d.observe();
-  const messages:Message[]=[{role:'system',content:systemPrompt(scope.origin,d.sanitize(scope.goal),d.sanitize(scope.rules))+`\nAUTHORIZED CAPABILITIES: ${JSON.stringify({writes:scope.writes,registration:scope.registration,credentialReferences:scope.references})}`},{role:'user',content:`Begin exploratory testing.\n<untrusted_observation>${boundedObservation(initial,d.sanitize)}</untrusted_observation>`}];
+  const permissions={writes:scope.writes,registration:scope.registration,credentialReferences:scope.references,...(scope.authority?{actors:scope.authority.actors,capabilities:scope.authority.capabilities,dataNamespace:scope.authority.namespace,fixtureIds:scope.authority.fixtureIds,maxRegistrationAccounts:scope.authority.maxAccounts,syntheticRecordLabels:'Prefix free-text test record names with the data namespace followed by an underscore; account identifiers and passwords use credential references.'}:{})};
+  const messages:Message[]=[{role:'system',content:systemPrompt(scope.origin,d.sanitize(scope.goal),d.sanitize(scope.rules))+`\nAUTHORIZED CAPABILITIES: ${JSON.stringify(permissions,(_key,item)=>typeof item==='string'?d.sanitize(item):item)}`},{role:'user',content:`Begin exploratory testing.\n<untrusted_observation>${boundedObservation(initial,d.sanitize)}</untrusted_observation>`}];
   let actions=0;
   for(let turn=0;turn<limits.turns;turn++){
     d.signal.throwIfAborted();await d.checkFence();

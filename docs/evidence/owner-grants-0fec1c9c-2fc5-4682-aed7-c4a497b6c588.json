@@ -1,0 +1,56 @@
+{
+  "runId": "0fec1c9c-2fc5-4682-aed7-c4a497b6c588",
+  "profile": "owned-lab-v1",
+  "startedAt": "2026-10-27T06:29:03.938Z",
+  "scripted": true,
+  "modelInference": false,
+  "checks": [
+    "sandboxed_mapped_policy_ready",
+    "unselected_credential_is_refused_before_initialization",
+    "ungranted_actor_is_refused",
+    "owner_identity_cap_is_enforced",
+    "approved_namespace_write_reaches_fixture",
+    "foreign_namespace_write_is_refused",
+    "unmapped_write_is_refused",
+    "approved_fixture_cancel_reaches_fixture",
+    "foreign_fixture_cancel_is_refused",
+    "registration_request_slot_is_reserved_before_forwarding",
+    "independent_sql_confirms_exact_allowed_arrivals_and_no_denied_nonce"
+  ],
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "arrivals": [
+    {
+      "nonce": "0fec1c9c-2fc5-4682-aed7-c4a497b6c588_api-good",
+      "origin": "https://fixture-corrected-lab:3002",
+      "path": "/_lab/create",
+      "method": "POST"
+    },
+    {
+      "nonce": "0fec1c9c-2fc5-4682-aed7-c4a497b6c588_cancel",
+      "origin": "https://fixture-lab:3002",
+      "path": "/_lab/records/owned-1/cancel",
+      "method": "POST"
+    },
+    {
+      "nonce": "0fec1c9c-2fc5-4682-aed7-c4a497b6c588_create",
+      "origin": "https://fixture-lab:3002",
+      "path": "/_lab/create",
+      "method": "POST"
+    },
+    {
+      "nonce": "0fec1c9c-2fc5-4682-aed7-c4a497b6c588_register-one",
+      "origin": "https://fixture-lab:3002",
+      "path": "/_lab/register",
+      "method": "POST"
+    }
+  ],
+  "passed": true,
+  "closed": true,
+  "finishedAt": "2026-10-27T06:30:03.410Z",
+  "claims": "Owned local mapped-policy component only. No deployed or complete SELF clearance; credential/application business semantics and broad staging grants need their remaining proofs."
+}

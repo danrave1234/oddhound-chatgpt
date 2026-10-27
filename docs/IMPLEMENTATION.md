@@ -13,8 +13,8 @@ The active tool loop validates Meta replies, commits intent before browser actio
 ## Actual verification
 
 - TypeScript passed and the production build completed. The dependency audit found an affected Drizzle 0.45.0 release; it was upgraded to patched 0.45.2 before publication.
-- Twenty focused tests passed with explicitly synthetic model transport/browser observations.
-- Four tests against a dedicated PostgreSQL test database passed: competing spend reservations/cancellation/unknown usage, actual BullMQ delivery/outbox deduplication, concurrent fresh fixture migration with state preservation, and development/public/judging funding isolation. No Redis.
+- Twenty-seven focused tests passed with explicitly synthetic model transport/browser observations.
+- Five tests against a dedicated PostgreSQL test database passed: competing spend reservations/cancellation/unknown usage, actual BullMQ delivery/outbox deduplication, concurrent fresh fixture migration with state preservation, development/public/judging funding isolation, and immutable authority/credential and API revocation. No Redis.
 - The owned Fieldwork fixture passed scripted HTTP registration/login/create/edit/cancel checks in both modes. Independent SQL confirmed the vulnerable negative-seat write and its rejection by the corrected mode, while the valid control remained functional.
 - Direct Meta authentication and a real two-call tool protocol smoke passed. Model: muse-spark-1.3; accounted cost $0.004119. Its tool observation was synthetic and no website was scanned. See PROVIDER_SMOKE_TESTS.md.
 - The dashboard rendered successfully. Saved-site persistence and ownership-method switching were checked in the browser. After a Docker restart, stale development chunks prevented hydration. Rebuilding the generated development cache restored interaction; the site dialog opens and focuses its name field. The screenshot is presentation evidence, not a full autonomous scan.
@@ -23,7 +23,7 @@ For reproducible SQL tests, create `oddhound_test` in the local PostgreSQL servi
 
 ## Remaining implementation
 
-The next slice completes explicit account/fixture/API grants and independent assertions with unchanged retests. Live demo admission/fixture isolation, all tenant/evidence/public-budget gates and deployment remain unfinished. Autonomous signup/login and unexpected writes have local owned-fixture evidence; general site compatibility remains unproved. Full atomic compute accounting and release attestations also remain unfinished; existing configuration checks are not proof of a funded containment profile.
+The next slice builds independent assertions with unchanged retests. Typed account/API grants are implemented; dynamic fixture bindings and the remaining actor/registration semantics still need their proofs. Live demo admission/fixture isolation, all tenant/evidence/public-budget gates and deployment remain unfinished. Autonomous signup/login and unexpected writes have local owned-fixture evidence; general site compatibility remains unproved. Full atomic compute accounting and release attestations also remain unfinished; existing configuration checks are not proof of a funded containment profile.
 
 Known planning risks still applicable include B01/B02 (image/provider profiles), B03/B04/B09/B18/B22/B23 (deployed browser isolation and policy), B06/B19 (autonomous rule/account/fixture behavior), B07/B21/B24/B26 (hosted recovery/accounting/limits), B08 (complete artifact/tenant protections), B20 (anonymous demo funding/isolation) and B27 (deployed access). The earlier audit's remaining closure gates are not waived. This is product implementation, not a new standalone blocker audit.
 
@@ -50,3 +50,9 @@ The same orchestrator used by the Fly worker now runs actual Meta exploration in
 Development funds now have their own $5 allocation and SQL-held/spent ledger. All three attempts total $2.216998 with no unknown usage. Public usage remains $0.004119 from the earlier protocol smoke, and no judging admission exists. Public input cannot select funding/priority. The dashboard separates development funding from the public quota and keeps candidate status explicit. Target credentials never enter model prompts; all model observations in this slice are sanitized text, with image inference still unavailable.
 
 The number-field preflight reports native rejected text without dispatching the incompatible fill. Other ambiguous action acknowledgements still fence exploration. Browser closure uncertainty keeps the local slot finalizing; the Fly reaper excludes explicitly local lab runs. Local closure/exit and synthetic cleanup are verified, not substituted for Fly destruction.
+
+## Owner contract slice
+
+Run setup now selects actor-specific credential references and freezes API proofs, methods, namespaces, test IDs, denied paths, cleanup and production write acknowledgement. Canonical snapshot hashes survive PostgreSQL JSON key order, and a database trigger rejects scope/owner/site/goal rewrites. Queued credential rotation or site/API revocation fences affected runs and releases unstarted reservations/quota. Active generations are fenced, with the existing dispatch/termination race gates still pending. The worker rechecks all selected origin/credential revisions and decrypts only approved references.
+
+The guest enforces selected roles/references and a mapped request policy for origin/method/path plus form/JSON namespace or fixture-ID bindings. Its conservative mapped registration-request slots are not a proof of all successful-account caps under arbitrary broad-staging behavior. Four pure Python tests and eleven actual request canaries pass. SQL sees four expected allowed writes and two permitted CORS preflights; denied nonces do not arrive. The existing fifteen browser workflow checks still pass. No new Meta call or Fly deployment occurred. RUN_AUTHORIZATION.md owns this slice’s evidence, reproduction and limits.

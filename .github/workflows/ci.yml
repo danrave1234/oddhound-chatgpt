@@ -42,6 +42,8 @@ jobs:
       - run: docker compose run --rm setup
       - run: docker compose run --rm setup pnpm exec tsx apps/fixture/bootstrap.ts
       - run: docker build --file apps/browser/Dockerfile --tag oddhound-product-browser:development .
+      - name: Check fixed request policy
+        run: docker run --rm --network none --mount "type=bind,source=$PWD/apps/browser/request_policy.py,target=/checks/request_policy.py,readonly" --mount "type=bind,source=$PWD/tests/gateway-policy.test.py,target=/checks/test_policy.py,readonly" --entrypoint python3 oddhound-product-browser:development /checks/test_policy.py
       - name: Create owned HTTPS fixture certificate
         run: |
           mkdir -p data/lab-tls
@@ -49,10 +51,16 @@ jobs:
       - run: docker compose run --rm setup pnpm exec tsx apps/browser/lab-prepare.ts
       - run: docker compose -f compose.yaml -f compose.browser-lab.yaml up -d dns-lab fixture-lab fixture-corrected-lab browser-lab
       - run: docker compose -f compose.yaml -f compose.browser-lab.yaml run --rm browser-lab-controller
+      - name: Prepare a fresh browser for owner-grant canaries
+        run: |
+          docker compose run --rm setup pnpm exec tsx apps/browser/lab-prepare.ts --grants
+          docker compose -f compose.yaml -f compose.browser-lab.yaml up -d browser-lab
+      - run: docker compose -f compose.yaml -f compose.browser-lab.yaml run --rm browser-lab-controller pnpm exec tsx apps/worker/lab-grants.ts
       - name: Show bounded component evidence
         if: always()
         run: |
           test ! -f docs/evidence/browser-tools-lab.json || cat docs/evidence/browser-tools-lab.json
+          test ! -f docs/evidence/owner-grants-latest.json || cat docs/evidence/owner-grants-latest.json
           docker compose -f compose.yaml -f compose.browser-lab.yaml logs --tail 20 browser-lab fixture-lab fixture-corrected-lab
       - name: Stop this job's containers
         if: always()

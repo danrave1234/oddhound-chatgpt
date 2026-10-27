@@ -1,0 +1,30 @@
+{
+  "runId": "a7838f81-db3e-4196-a583-d6cd6e4fa0a3",
+  "profile": "owned-lab-v1",
+  "startedAt": "2026-10-27T06:54:24.857Z",
+  "scripted": true,
+  "modelInference": false,
+  "checks": [
+    "sandboxed_mapped_policy_ready",
+    "unselected_credential_is_refused_before_initialization",
+    "ungranted_actor_is_refused",
+    "owner_identity_cap_is_enforced",
+    "approved_namespace_write_reaches_fixture",
+    "foreign_namespace_write_is_refused",
+    "unmapped_write_is_refused",
+    "approved_fixture_cancel_reaches_fixture",
+    "foreign_fixture_cancel_is_refused",
+    "registration_request_slot_is_reserved_before_forwarding"
+  ],
+  "sandbox": {
+    "enabled": true,
+    "uid": 1101,
+    "chromiumVersion": "156.0.8078.4",
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tYes\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed."
+  },
+  "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n-   'api-foreign_preflight',\n-   'api-good',\n-   'api-good_preflight',\n    'cancel',\n    'create',\n    'register-one'\n  ]\n",
+  "passed": false,
+  "closed": true,
+  "finishedAt": "2026-10-27T06:55:28.259Z",
+  "claims": "Owned local mapped-policy component only. No deployed or complete SELF clearance; credential/application business semantics and broad staging grants need their remaining proofs."
+}

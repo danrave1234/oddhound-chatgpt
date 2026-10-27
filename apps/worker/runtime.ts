@@ -15,6 +15,7 @@ async function fly(path:string,method='GET',body?:unknown){
   if(response.status===404)return null;const raw=await response.text();if(raw.length>1024*1024)throw new Error('fly_response_too_large');return raw?JSON.parse(raw):null;
 }
 export function runtimeConfigured(){return Boolean(process.env.FLY_API_TOKEN&&process.env.ODDHOUND_BROWSER_APP&&process.env.ODDHOUND_BROWSER_IMAGE&&process.env.ODDHOUND_RUNTIME_GATE_FILE&&process.env.ODDHOUND_VAULT_KEY);}
+export function guestRunScope(scope:unknown,expiresAt:Date){if(!scope||typeof scope!=='object'||Array.isArray(scope))throw new Error('invalid_browser_scope');return browserScope.parse({...scope,expiresAt:expiresAt.toISOString()});}
 export async function runtimeGate(){
   const image=process.env.ODDHOUND_BROWSER_IMAGE??'';if(!/^.+@sha256:[a-f0-9]{64}$/.test(image))throw new Error('browser_image_digest_required');
   const path=process.env.ODDHOUND_RUNTIME_GATE_FILE;if(!path)throw new Error('runtime_gate_not_configured');
@@ -38,7 +39,7 @@ export class BrowserRuntime{
   requestStop(){return this.call<{closed:boolean}>('stop',{},AbortSignal.timeout(4500));}
 }
 export async function provision(runId:string,scope:unknown,expiresAt:Date,signal:AbortSignal){
-  const image=await runtimeGate(),browserApp=app(),path=randomBytes(32).toString('hex'),runScope=browserScope.parse(scope);
+  const image=await runtimeGate(),browserApp=app(),path=randomBytes(32).toString('hex'),runScope=guestRunScope(scope,expiresAt);
   const sources=process.env.ODDHOUND_TRUSTED_WEB_IPS?.split(',')??[];if(!sources.length||sources.some(v=>isIP(v)!==6||!v.startsWith('fdaa:')))throw new Error('trusted_control_sources_required');
   // Region/rate/compute headroom must be supplied before any paid Machine creation.
   if(!(Number(process.env.ODDHOUND_COMPUTE_PER_RUN_USD)>0)||!(Number(process.env.ODDHOUND_COMPUTE_AVAILABLE_USD)>=Number(process.env.ODDHOUND_COMPUTE_PER_RUN_USD)))throw new Error('compute_budget_not_configured');

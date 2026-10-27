@@ -15,6 +15,7 @@ services:
       FIXTURE_ORIGIN: https://fixture-lab:3002
       FIXTURE_TLS_CERT: /opt/lab-certs/cert.pem
       FIXTURE_TLS_KEY: /opt/lab-certs/key.pem
+      FIXTURE_LAB_CANARY: "1"
       FIXTURE_CORRECTED: "${ODDHOUND_LAB_FIXTURE_CORRECTED:-0}"
     command: [sh, -c, "node /workspace/node_modules/tsx/dist/cli.mjs apps/fixture/migrate.ts && node /workspace/node_modules/tsx/dist/cli.mjs apps/fixture/server.ts"]
     healthcheck:

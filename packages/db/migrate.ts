@@ -39,5 +39,11 @@ ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS state text NOT NULL DEFAULT 'read
 ALTER TABLE runs ADD COLUMN IF NOT EXISTS funding_account text NOT NULL DEFAULT 'public' CHECK(funding_account IN ('public','development','judge'));
 ALTER TABLE action_ledger ADD COLUMN IF NOT EXISTS action jsonb;
 CREATE TABLE IF NOT EXISTS model_funds(id text PRIMARY KEY CHECK(id IN ('development','judge')),limit_micros bigint NOT NULL CHECK(limit_micros>=0),spent_micros bigint NOT NULL DEFAULT 0 CHECK(spent_micros>=0),held_micros bigint NOT NULL DEFAULT 0 CHECK(held_micros>=0),CHECK(spent_micros+held_micros<=limit_micros),CHECK((id='development' AND limit_micros<=85000000) OR (id='judge' AND limit_micros<=15000000)));
+ALTER TABLE credentials ADD COLUMN IF NOT EXISTS revision integer NOT NULL DEFAULT 1;
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS quota_refunded boolean NOT NULL DEFAULT false;
+CREATE OR REPLACE FUNCTION oddhound_freeze_run_contract() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+IF NEW.scope IS DISTINCT FROM OLD.scope OR NEW.owner_id IS DISTINCT FROM OLD.owner_id OR NEW.site_id IS DISTINCT FROM OLD.site_id OR NEW.goal IS DISTINCT FROM OLD.goal THEN RAISE EXCEPTION 'run_contract_is_immutable' USING ERRCODE='23514'; END IF; RETURN NEW; END $$;
+DROP TRIGGER IF EXISTS freeze_run_contract ON runs;
+CREATE TRIGGER freeze_run_contract BEFORE UPDATE ON runs FOR EACH ROW EXECUTE FUNCTION oddhound_freeze_run_contract();
 `);
 console.log('Oddhound application tables ready');await pool.end();

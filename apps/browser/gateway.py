@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from urllib.parse import urlsplit
 from mitmproxy import http, ctx
+from request_policy import canonical_path, matching_operation, body_allowed, preflight_allowed
 
 BASE = Path('/run/oddhound')
 SCOPE = json.loads((BASE / 'scope.json').read_text())
@@ -12,6 +13,7 @@ LAB = (BASE / 'profile').read_text().strip() == 'owned-lab-v1'
 UI = SCOPE['origin']
 APIS = {a['origin']: set(a['methods']) for a in SCOPE.get('apiOrigins', [])}
 RESOURCES = set(SCOPE.get('resourceOrigins', []))
+GRANT = SCOPE.get('authorization')
 ASSETS = {'script', 'style', 'image', 'font', 'manifest', 'audio', 'video', 'iframe', 'frame', 'worker', 'sharedworker'}
 
 def origin(url):
@@ -22,6 +24,10 @@ def origin(url):
     return f'{u.scheme}://{u.hostname}' + (f':{port}' if port and port != (443 if u.scheme == 'https' else 80) else '')
 
 def path_denied(path):
+    try:
+        path = canonical_path(path)
+    except (ValueError, UnicodeError):
+        return True
     return any(path == p or path.startswith(p.rstrip('/') + '/') for p in SCOPE.get('deniedPaths', []))
 
 class Policy:
@@ -34,6 +40,7 @@ class Policy:
         self.reason = None
         self.nav_used = set()
         self.redirects = {}
+        self.registration_attempts = 0
 
     def save(self):
         value = {'requests': self.requests, 'active': self.active, 'receivedBytes': self.bytes, 'denied': self.denied, 'fenced': self.fenced, 'reason': self.reason, 'updatedAt': time.time()}
@@ -87,6 +94,9 @@ class Policy:
         source = origin(request.headers.get('origin', ''))
         referer = origin(request.headers.get('referer', ''))
         dest = request.headers.get('sec-fetch-dest', '')
+        preflight = request.method == 'OPTIONS' and host in APIS and preflight_allowed(GRANT, host, request.headers.get('access-control-request-method', ''), parsed.path, source, UI, APIS[host])
+        authentication = GRANT and host in {UI, *APIS} and matching_operation(GRANT, host, request.method, parsed.path)
+        authentication = authentication and authentication['effect'] == 'authenticate' and GRANT['capabilities']['authenticate']
         allowed = False
         if host == UI:
             # Ordinary in-scope UI discovery is unrestricted by endpoint names.
@@ -102,12 +112,14 @@ class Policy:
                 if self.redirects.get(request.url, 0) >= time.time():
                     allowed = True
                     del self.redirects[request.url]
-            if request.method not in ('GET', 'HEAD') and not SCOPE['writes']:
+            if request.method not in ('GET', 'HEAD') and not SCOPE['writes'] and not authentication:
+                allowed = False
+            if GRANT and request.method not in GRANT['uiMethods']:
                 allowed = False
         elif host in APIS:
             # Resource frames/workers cannot borrow the verified UI's API grant.
-            allowed = source == UI and dest not in ('document', 'iframe', 'frame') and request.method in APIS[host]
-            if request.method not in ('GET', 'HEAD') and not SCOPE['writes']:
+            allowed = preflight or source == UI and dest not in ('document', 'iframe', 'frame') and request.method in APIS[host]
+            if request.method not in ('GET', 'HEAD') and not SCOPE['writes'] and not authentication and not preflight:
                 allowed = False
         elif host in RESOURCES:
             allowed = request.method in ('GET', 'HEAD') and dest in ASSETS
@@ -116,10 +128,37 @@ class Policy:
         if not allowed:
             self.deny(flow, 'origin_or_capability_refused')
             return
+        if GRANT and host in {UI, *APIS} and request.method not in ('GET', 'HEAD') and not preflight:
+            operation = matching_operation(GRANT, host, request.method, parsed.path)
+            if GRANT['mode'] == 'mapped' and not operation:
+                self.deny(flow, 'operation_not_granted')
+                return
+            if operation:
+                if operation['effect'] != 'register' and not GRANT['capabilities'].get(operation['effect'], False):
+                    self.deny(flow, 'effect_not_granted')
+                    return
+                flow.metadata['oddhound_operation'] = operation
+            request.stream = False
         request.headers.pop('proxy-authorization', None)
         request.headers['accept-encoding'] = 'identity'
         # Request body storage is independently bounded by mitmproxy body_size_limit.
         self.save()
+
+    def request(self, flow):
+        if flow.metadata.get('oddhound_denied'):
+            return
+        operation = flow.metadata.get('oddhound_operation')
+        if not operation:
+            return
+        if not body_allowed(GRANT, operation, flow.request.headers.get('content-type', ''), flow.request.raw_content or b'', SCOPE.get('registrationPrefix'), SCOPE.get('registrationDomain')):
+            self.deny(flow, 'fixture_body_not_granted')
+            return
+        if operation['effect'] == 'register':
+            if not SCOPE['registration'] or self.registration_attempts >= GRANT['maxAccounts']:
+                self.deny(flow, 'registration_attempt_limit')
+                return
+            # Reserve before forwarding; an uncertain response does not free a slot.
+            self.registration_attempts += 1
 
     def responseheaders(self, flow):
         if flow.metadata.get('oddhound_denied'):

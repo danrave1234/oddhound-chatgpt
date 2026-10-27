@@ -20,7 +20,7 @@ export async function runExploration(input:{id:string;generation:number;scope:En
         const clean=await save(await browser.execute(action,key),action);
         await actionResult(id,key,clean);await event(id,'browser.action',`Browser action observed: ${action.name}.`,{action:action.name,key,...clean});return clean;
       }catch(error){
-        const code=(error as Error).message,refused=['stale_or_unknown_target','frame_action_refused','credential_reference_required','credential_scope_refused','registration_namespace_required','registration_identity_limit','action_rate_limited','tool_scope_refused','browser_busy'];
+        const code=(error as Error).message,refused=['stale_or_unknown_target','frame_action_refused','credential_reference_required','credential_scope_refused','registration_namespace_required','registration_identity_limit','action_rate_limited','tool_scope_refused','browser_busy','actor_not_granted','credential_not_granted'];
         if(refused.includes(code)){await actionResult(id,key,{refused:code});throw error;}
         await event(id,'action.outcome_unknown','The browser action outcome is uncertain. Exploration is fenced; the action will not be retried.',{key});throw new Error('action_outcome_unknown');
       }

@@ -36,7 +36,7 @@ try{
   await admitDevelopmentRun({id,goal,scope:{...scope,kind:'demo',labOnly:true,siteName:'Autonomous owned demo',rules},expiresAt:scope.expiresAt});admitted=true;
   let busy=false;timer=setInterval(()=>{if(busy)return;busy=true;void fence().then(()=>pool.query("UPDATE runs SET lease_until=now()+interval '45 seconds' WHERE id=$1 AND generation=1",[id])).catch(error=>controller.abort(error)).finally(()=>{busy=false;});},1000);
   await rpc('initialize',{credentials:[]});await event(id,'run.running','Real Meta exploration of the owned HTTPS fixture started; no click script or defect list was provided.');
-  await runExploration({id,generation:1,scope:{origin:scope.origin,goal,rules,writes:true,registration:true,references:[]},browser,signal,fence,sanitize,inputPrice,outputPrice,afterObservation:inspectStore});completed=true;
+  await runExploration({id,generation:1,scope:{origin:scope.origin,goal,rules,writes:true,registration:true,references:[],authority:scope.authorization},browser,signal,fence,sanitize,inputPrice,outputPrice,afterObservation:inspectStore});completed=true;
 }catch(error){evidence.error=/^[a-z0-9_]+$/.test((error as Error).message)?(error as Error).message:'owned_exploration_failed';console.error('Autonomous owned run ended:',evidence.error);}
 finally{
   if(timer)clearInterval(timer);controller.abort(new Error('run_finalizing'));try{closed=Boolean((await rpc<{closed:boolean}>('stop')).closed);}catch{}evidence.browserCloseAcknowledged=closed;

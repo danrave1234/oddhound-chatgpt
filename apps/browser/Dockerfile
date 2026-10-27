@@ -30,7 +30,7 @@ COPY --from=build /runtime/node_modules/ ./node_modules/
 COPY --from=build /out/server.mjs ./server.mjs
 COPY --from=smokescreen /out/smokescreen ./smokescreen
 COPY --from=smokescreen /src/LICENSE.txt ./licenses/smokescreen.txt
-COPY apps/browser/gateway.py apps/browser/chromium-launcher.sh ./
+COPY apps/browser/gateway.py apps/browser/request_policy.py apps/browser/chromium-launcher.sh ./
 COPY apps/browser/LICENSE.Playwright ./licenses/playwright.txt
 RUN chmod 755 chromium-launcher.sh && ln -s "$(node -e 'process.stdout.write(require("playwright").chromium.executablePath())')" /opt/oddhound/chromium-real
 ENV NODE_ENV=production

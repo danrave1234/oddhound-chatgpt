@@ -11,6 +11,6 @@ test('two fixture servers can migrate a fresh schema concurrently without losing
     const account=(await pool.query("INSERT INTO fixture_accounts(username,password_hash) VALUES('synthetic','test-only-hash') RETURNING id")).rows[0];
     await migrateFixture(pool);
     assert.equal((await pool.query('SELECT id FROM fixture_accounts')).rows[0].id,account.id);
-    assert.equal((await admin.query('SELECT count(*) FROM information_schema.tables WHERE table_schema=$1',[schema])).rows[0].count,'3');
+    assert.equal((await admin.query('SELECT count(*) FROM information_schema.tables WHERE table_schema=$1',[schema])).rows[0].count,'4');
   }finally{await pool.end();await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);await admin.end();}
 });

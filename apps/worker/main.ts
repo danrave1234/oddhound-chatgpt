@@ -4,6 +4,7 @@ import {getPool,event,transaction} from '@oddhound/db';
 import {releaseUnusedBudget} from '../../packages/db/budget';
 import {scrub,unseal} from '../../packages/db/vault';
 import {checkOwnership} from '../web/lib/ownership';
+import {assertAuthorizationCurrent} from '../../packages/db/run-authorization';
 import {runExploration} from './exploration';
 import {provision,destroy,runtimeConfigured,type BrowserRuntime} from './runtime';
 
@@ -25,13 +26,17 @@ async function processRun(id:string){
     const site=(await pool.query('SELECT * FROM sites WHERE id=$1 AND owner_id=$2',[row.site_id,row.owner_id])).rows[0];
     if(!site||site.revision!==row.scope.revision||!site.verification_method)throw new Error('site_verification_required');
     await checkOwnership(site.origin,site.verification_token,site.verification_method);await fence();
-    const credentials=(await pool.query('SELECT reference,secret_cipher FROM credentials WHERE site_id=$1 AND owner_id=$2',[site.id,row.owner_id])).rows;
-    const values=credentials.map(c=>({reference:c.reference,value:unseal(c.secret_cipher,`${row.owner_id}:${site.id}:${c.reference}`)}));
-    const sanitize=(text:string)=>scrub(text,[...values.map(c=>c.value),...['META_API_KEY','FLY_API_TOKEN','BETTER_AUTH_SECRET','DATABASE_URL','ODDHOUND_VAULT_KEY','GITHUB_CLIENT_SECRET'].map(k=>process.env[k]??'')]);
+    const approved=row.scope.authorizationSnapshot;if(!approved||!row.scope.authorizationHash)throw new Error('owner_authorization_required');
+    const activeSites=(await pool.query('SELECT * FROM sites WHERE id=ANY($1::uuid[]) AND owner_id=$2',[approved.apiOrigins.map((a:any)=>a.siteId).concat(site.id),row.owner_id])).rows;
+    const credentials=(await pool.query('SELECT id,reference,revision,secret_cipher FROM credentials WHERE site_id=$1 AND owner_id=$2 AND id=ANY($3::uuid[])',[site.id,row.owner_id,approved.credentialBindings.map((c:any)=>c.id)])).rows;
+    assertAuthorizationCurrent(approved,row.scope.authorizationHash,activeSites,credentials);
+    for(const api of approved.apiOrigins){const active=activeSites.find((s:any)=>s.id===api.siteId);await checkOwnership(active.origin,active.verification_token,active.verification_method);await fence();}
+    const values=approved.credentialBindings.map((binding:any)=>{const c=credentials.find((c:any)=>c.id===binding.id);return{reference:c.reference,actor:binding.actor,value:unseal(c.secret_cipher,`${row.owner_id}:${site.id}:${c.reference}`)};});
+    const sanitize=(text:string)=>scrub(text,[...values.map((c:any)=>c.value),...['META_API_KEY','FLY_API_TOKEN','BETTER_AUTH_SECRET','DATABASE_URL','ODDHOUND_VAULT_KEY','GITHUB_CLIENT_SECRET'].map(k=>process.env[k]??'')]);
     const browser=await provision(id,{...row.scope,expiresAt:row.expires_at},new Date(row.expires_at),signal);activeBrowser=browser;
     await browser.call('initialize',{credentials:values});await fence();
     await pool.query("UPDATE runs SET status='running' WHERE id=$1 AND generation=$2",[id,generation]);await event(id,'run.running','Ownership rechecked. The isolated browser is exploring.');
-    await runExploration({id,generation,scope:{origin:site.origin,goal:row.goal,rules:row.scope.rules,writes:row.scope.writes,registration:row.scope.registration,references:values.map(c=>c.reference)},browser,signal,fence,sanitize,inputPrice,outputPrice});completed=true;
+    await runExploration({id,generation,scope:{origin:site.origin,goal:row.goal,rules:row.scope.rules,writes:row.scope.writes,registration:row.scope.registration,references:values.map((c:any)=>c.reference),authority:approved.guest},browser,signal,fence,sanitize,inputPrice,outputPrice});completed=true;
   }catch(error){const message=(error as Error)?.message??'';reason=signal.aborted?(signal.reason?.message??'run_fenced'):/^[a-z0-9_]+$/.test(message)?message:'execution_failed';await event(id,'run.execution_ended','Exploration ended.',{reason});}
   finally{
     clearInterval(timer);controller.abort(new Error('run_finalizing'));if(activeBrowser)try{await activeBrowser.requestStop();}catch{await event(id,'browser.close_unconfirmed','Browser close acknowledgement was not received; Machine destruction will be checked separately.');}

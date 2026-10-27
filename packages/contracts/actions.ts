@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {guestAuthorization} from './authorization';
 const target=z.string().min(1).max(200);
 export const browserAction=z.discriminatedUnion('name',[
   z.object({name:z.literal('navigate'),url:z.string().url()}),
@@ -22,6 +23,7 @@ export const browserScope=z.object({
   deniedPaths:z.array(z.string().regex(/^\//).max(300)).max(100).default([]),
   registrationPrefix:z.string().regex(/^[a-z0-9_-]{3,24}$/).optional(),registrationDomain:z.string().regex(/^[a-z0-9.-]{3,120}$/).optional(),
   expiresAt:z.string().datetime(),
+  authorization:guestAuthorization.optional(),
 });
 export type BrowserScope=z.infer<typeof browserScope>;
 export const browserObservation=z.object({
@@ -29,6 +31,7 @@ export const browserObservation=z.object({
   controls:z.array(z.object({target:z.string().max(200),role:z.string().max(40),name:z.string().max(180),options:z.array(z.string().max(100)).max(40).optional()})).max(200),
   actor:z.enum(['primary','secondary']).optional(),device:z.enum(['desktop','mobile']).optional(),
   credentialReferences:z.array(z.string().max(80)).max(40).optional(),
+  identityMarkerObserved:z.boolean().optional(),
   screenshot:z.object({mediaType:z.literal('image/png'),base64:z.string().max(1400000),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).optional(),
   screenshotSuppressed:z.string().max(100).optional(),blocked:z.string().max(100).optional(),artifactId:z.string().uuid().optional(),
 });
