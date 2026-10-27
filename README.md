@@ -2,11 +2,11 @@
 
 Active exploratory testing for websites you own. Verify a site, authorize test accounts and synthetic writes, then inspect the evidence from unexpected actions and replay the original assertion after a fix.
 
-**Work in progress.** This repository contains the independent ChatGPT implementation. It is not a deployed scanner or a completed security certification. Public website execution is disabled.
+**Work in progress.** This repository contains the independent ChatGPT implementation. The [hosted preview](https://oddhound-chatgpt-preview.vercel.app) is deployed with private website execution disabled until the remaining runtime gates pass. The preview retains Vercel Authentication protection.
 
-The [connected local MVP](docs/CONNECTED_MVP.md) now runs live Meta exploration from the UI, independently verifies a saved finding, retests the original assertion against the corrected owned demo, and exports the frozen recipe/evidence. The actual UI run completed 55 browser actions for $1.068351. The Next.js hosting target is Vercel; the separate worker/browser backend uses Fly. Hosted public-site execution is still being completed.
+The [connected local MVP](docs/CONNECTED_MVP.md) runs live Meta exploration from the UI, independently verifies a saved finding, retests the original assertion against the corrected owned demo, and exports the frozen recipe/evidence. The actual UI run completed 55 browser actions for $1.068351. The Next.js frontend runs on Vercel Hobby, PostgreSQL on Neon Free, and the trusted worker/independent reaper on Fly. Hosted HTTP/database/queue access, a sandboxed fresh browser and controller-crash cleanup are verified; a hosted browser/model product run and full GitHub sign-in are still pending.
 
-![Oddhound workspace](docs/assets/workspace.png)
+![Actual finding verification and unchanged retest](docs/assets/connected-mvp.png)
 
 ## Implemented so far
 

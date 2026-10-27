@@ -13,7 +13,7 @@ COPY packages/agent/package.json packages/agent/package.json
 COPY packages/ui/package.json packages/ui/package.json
 RUN pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm exec esbuild apps/worker/main.ts apps/worker/reaper.ts --bundle --platform=node --format=esm --external:pg --external:bullmq --out-extension:.js=.mjs --outdir=/out
+RUN pnpm exec esbuild apps/worker/main.ts apps/worker/reaper.ts apps/worker/lifecycle-probe.ts --bundle --platform=node --format=esm --external:pg --external:bullmq --out-extension:.js=.mjs --outdir=/out
 RUN pnpm --filter @oddhound/worker deploy --prod --legacy /runtime
 
 FROM node:26-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe

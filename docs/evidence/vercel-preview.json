@@ -1,0 +1,38 @@
+{
+  "createdAt": "2026-10-27T11:08:26.209Z",
+  "deploymentId": "dpl_CsXwJFLiC31h1GfnmpzsZVdUyRza",
+  "url": "https://oddhound-chatgpt-preview.vercel.app",
+  "checks": [
+    {
+      "path": "/api/status",
+      "status": 200
+    },
+    {
+      "path": "/api/runs/a53f4907-b414-4bfc-bc8e-f33a06dfaf8f",
+      "status": 401,
+      "error": "sign_in_required"
+    },
+    {
+      "path": "/replay/record.json",
+      "status": 200
+    }
+  ],
+  "actual": {
+    "runtime": {
+      "node": "v26.12.1"
+    },
+    "database": true,
+    "worker": true,
+    "publicExecutionEnabled": false,
+    "metaConfigured": true,
+    "browserConfigured": false
+  },
+  "oauth": {
+    "status": 200,
+    "correctProvider": true,
+    "correctCallback": true
+  },
+  "modelInference": false,
+  "passed": true,
+  "claims": "Protected Vercel frontend/runtime/database/read-only replay, GitHub authorization redirect and signed-out application boundary checks. No completed OAuth session, browser job, model call or public launch claim."
+}

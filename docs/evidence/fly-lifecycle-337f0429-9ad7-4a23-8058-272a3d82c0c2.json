@@ -1,0 +1,26 @@
+{
+  "createdAt": "2026-10-27T11:18:48.414Z",
+  "controllerMachineId": "784525dcd127e8",
+  "runId": "337f0429-9ad7-4a23-8058-272a3d82c0c2",
+  "sandbox": {
+    "uid": 1101,
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tNo\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed.",
+    "enabled": true,
+    "chromiumVersion": "156.0.8078.4"
+  },
+  "image": "registry.fly.io/oddhound-chatgpt-browser@sha256:9b3cd6594a805543937fa461eae397e60a25441f68607ad18b16f7f8de3fb4fd",
+  "modelInference": false,
+  "siteNavigation": false,
+  "controllerExitMarkerRecorded": true,
+  "machineRowsPersisted": 0,
+  "deletedBeforeGuestExpiry": false,
+  "capacityHeldAfterDeletion": false,
+  "finalStatus": "blocked",
+  "stopReason": "worker_lease_lost",
+  "reaperFinalizationRecorded": true,
+  "machinesRemaining": 0,
+  "actions": 0,
+  "turns": 0,
+  "passed": false,
+  "claims": "Real targetless deployed controller exit before browser_machines persistence; independent production reaper and bounded unknown-allocation hold. No target initialization, model call, full runtime or public-release claim."
+}

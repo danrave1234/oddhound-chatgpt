@@ -1,0 +1,32 @@
+{
+  "createdAt": "2026-10-27T11:22:52.740Z",
+  "controllerMachineId": "2871577cd55228",
+  "runId": "c469f007-2dd4-490f-9a7f-ace118ba3e2b",
+  "browserMachineId": "1854e46c60ddd8",
+  "sandbox": {
+    "uid": 1101,
+    "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tNo\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed.",
+    "enabled": true,
+    "chromiumVersion": "156.0.8078.4"
+  },
+  "image": "registry.fly.io/oddhound-chatgpt-browser@sha256:9b3cd6594a805543937fa461eae397e60a25441f68607ad18b16f7f8de3fb4fd",
+  "modelInference": false,
+  "siteNavigation": false,
+  "controllerExitMarkerRecorded": true,
+  "machineRowsPersisted": 0,
+  "deletedBeforeGuestExpiry": true,
+  "capacityHeldAfterDeletion": true,
+  "finalStatus": "blocked",
+  "stopReason": "worker_lease_lost",
+  "reaperFinalizationRecorded": true,
+  "machinesRemaining": 0,
+  "actions": 0,
+  "turns": 0,
+  "passed": true,
+  "claims": "Real targetless deployed controller exit before browser_machines persistence; independent production reaper and bounded unknown-allocation hold. No target initialization, model call, full runtime or public-release claim.",
+  "expectedHoldUntil": "2026-10-27T11:22:46.947Z",
+  "finalizedAt": "2026-10-27T11:22:50.683Z",
+  "releasedAfterUnknownWindow": true,
+  "providerExitCode": 42,
+  "providerExitConfirmedAt": "2026-10-27T11:20:54.723455924Z"
+}
