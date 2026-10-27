@@ -20,3 +20,5 @@ Verified local environment on October 27, 2026:
 **Local Chromium sandbox verdict:** enabled in the owned browser lab, UID 1101, Chromium 156.0.8078.4. Namespace, PID/network namespaces and Seccomp-BPF report Yes. This is an actual product-runner launch, not a dashboard browser check. No Fly/deployed verdict exists and no no-sandbox fallback is enabled.
 
 Browser helpers: mitmproxy 12.3.1; smokescreen commit 68e7b8218e226bc47d09ce705fdb8fed82145ceb built with Go 1.26.10. Browser base: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea. Exact local image fingerprints and per-run sandbox evidence accompany the browser records.
+
+The browser CI startup correction changes no dependency version or sandbox setting. Local verification after the correction: 14 real scripted browser checks, three PostgreSQL integration tests, TypeScript and import policy checks passed. The initial remote failure remains linked from BROWSER_RUNTIME.md.

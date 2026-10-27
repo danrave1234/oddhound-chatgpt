@@ -14,7 +14,7 @@ await pool.query("INSERT INTO runs(id,owner_id,goal,status,scope,held_micros,sta
 try{
   let ready:any;for(let i=0;i<30;i++){try{ready=await rpc('ready');break;}catch{await new Promise(r=>setTimeout(r,500));}}
   assert.equal(ready?.policy,'owned-lab-v1');assert.equal(ready.sandbox.enabled,true);assert.equal(ready.sandbox.uid,1101);evidence.sandbox=ready.sandbox;check('actual_nonroot_chromium_sandbox');
-  observed=await saveObservation(runId,await rpc('initialize',{credentials:[]}));await event(runId,'browser.observation','Initial scripted browser observation.',observed);assert(observed.controls.some(c=>c.role==='link'));check('live_page_discovery');
+  observed=await saveObservation(runId,await rpc('initialize',{credentials:[]}));await event(runId,'browser.observation','Initial scripted browser observation.',observed);evidence.initialDocument={title:observed.title,text:observed.text.slice(0,1000),controls:observed.controls.length};assert(observed.controls.some(c=>c.role==='link'));check('live_page_discovery');
   assert(observed.artifactId);const png=await readArtifact('engineering-tests',observed.artifactId);assert(png.length>1000);await assert.rejects(readArtifact('another-owner',observed.artifactId),/not_found/);check('private_screenshot_and_tenant_boundary');
   await assert.rejects(action({name:'navigate',url:'https://fixture-corrected-lab:3002/'}),/tool_scope_refused/);check('other_ui_origin_refused');
   await action({name:'prepare_identity'});const refs=observed.credentialReferences!;const username=refs.find(r=>r.endsWith('.username'))!,password=refs.find(r=>r.endsWith('.password'))!;assert(username&&password);assert.equal(observed.screenshotSuppressed,'credential_state');check('generated_credential_references_and_pixel_suppression');

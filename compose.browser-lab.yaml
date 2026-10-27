@@ -17,6 +17,11 @@ services:
       FIXTURE_TLS_KEY: /opt/lab-certs/key.pem
       FIXTURE_CORRECTED: "0"
     command: [sh, -c, "node /workspace/node_modules/tsx/dist/cli.mjs apps/fixture/migrate.ts && node /workspace/node_modules/tsx/dist/cli.mjs apps/fixture/server.ts"]
+    healthcheck:
+      test: [CMD, node, -e, "require('node:https').get(process.env.FIXTURE_ORIGIN,{ca:require('node:fs').readFileSync(process.env.FIXTURE_TLS_CERT)},r=>{r.resume();process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
     networks:
       default: {}
       browser-lab: {ipv4_address: 172.30.73.20}
@@ -30,6 +35,10 @@ services:
       browser-lab: {ipv4_address: 172.30.73.21}
   browser-lab:
     image: oddhound-product-browser:development
+    depends_on:
+      dns-lab: {condition: service_started}
+      fixture-lab: {condition: service_healthy}
+      fixture-corrected-lab: {condition: service_healthy}
     env_file: data/browser-lab.env
     environment:
       ODDHOUND_BROWSER_PROFILE: owned-lab-v1
@@ -52,6 +61,8 @@ services:
       ODDHOUND_ARTIFACT_DIRECTORY: /workspace/data/artifacts
     env_file: data/browser-lab.env
     command: [pnpm, exec, tsx, apps/worker/lab-check.ts]
+    depends_on:
+      browser-lab: {condition: service_started}
     networks:
       default: {}
       browser-lab: {ipv4_address: 172.30.73.10}

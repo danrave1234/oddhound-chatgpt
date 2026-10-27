@@ -14,7 +14,7 @@ The active tool loop validates Meta replies, commits intent before browser actio
 
 - TypeScript passed and the production build completed. The dependency audit found an affected Drizzle 0.45.0 release; it was upgraded to patched 0.45.2 before publication.
 - Nineteen focused tests passed with explicitly synthetic model transport/browser observations.
-- Two tests against a dedicated PostgreSQL test database passed: competing spend reservations/cancellation/unknown usage and actual BullMQ delivery/outbox deduplication. No Redis.
+- Three tests against a dedicated PostgreSQL test database passed: competing spend reservations/cancellation/unknown usage, actual BullMQ delivery/outbox deduplication, and concurrent fresh fixture migration with state preservation. No Redis.
 - The owned Fieldwork fixture passed scripted HTTP registration/login/create/edit/cancel checks in both modes. Independent SQL confirmed the vulnerable negative-seat write and its rejection by the corrected mode, while the valid control remained functional.
 - Direct Meta authentication and a real two-call tool protocol smoke passed. Model: muse-spark-1.3; accounted cost $0.004119. Its tool observation was synthetic and no website was scanned. See PROVIDER_SMOKE_TESTS.md.
 - The dashboard rendered successfully. Saved-site persistence and ownership-method switching were checked in the browser. After a Docker restart, stale development chunks prevented hydration. Rebuilding the generated development cache restored interaction; the site dialog opens and focuses its name field. The screenshot is presentation evidence, not a full autonomous scan.

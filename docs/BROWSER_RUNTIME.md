@@ -31,3 +31,5 @@ After the main setup and fixture bootstrap in README:
 5. Run the `browser-lab-controller` service using both Compose files. It calls no model and cleans its synthetic accounts and bookings.
 
 Create a new prepared run and fresh browser container for another run. Never resume a browser/profile from a prior run. CI uses the same commands against a fresh job environment.
+
+The first browser CI run passed the sandbox check but failed initial page discovery ([run 40455049332](https://github.com/danrave1234/oddhound-chatgpt/actions/runs/40455049332)). Its logs did not establish the page failure's exact cause. The lab now waits for certificate-validated HTTPS fixture readiness before browser startup, serializes concurrent schema migration in PostgreSQL, and saves a bounded initial-document summary for diagnosis. A fresh-schema concurrency integration test and all 14 local browser checks pass after these changes; GitHub confirmation is recorded separately.

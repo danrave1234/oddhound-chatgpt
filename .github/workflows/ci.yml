@@ -53,7 +53,7 @@ jobs:
         if: always()
         run: |
           test ! -f docs/evidence/browser-tools-lab.json || cat docs/evidence/browser-tools-lab.json
-          docker compose -f compose.yaml -f compose.browser-lab.yaml logs --tail 20 browser-lab
+          docker compose -f compose.yaml -f compose.browser-lab.yaml logs --tail 20 browser-lab fixture-lab fixture-corrected-lab
       - name: Stop this job's containers
         if: always()
         run: docker compose -f compose.yaml -f compose.browser-lab.yaml down

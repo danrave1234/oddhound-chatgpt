@@ -1,0 +1,11 @@
+{
+  "profile": "owned-lab-v1",
+  "testedRunId": "38f0f870-56c1-4f06-acbc-33cc7bcb97b8",
+  "localImageId": "sha256:6c3677c719884f8ac66c22d06af4cc852d8b58bf4cca9bd8244d395b2cdd42fa",
+  "localOciIndexDigest": "sha256:6c3677c719884f8ac66c22d06af4cc852d8b58bf4cca9bd8244d395b2cdd42fa",
+  "publishedRegistryImage": false,
+  "chromiumVersion": "156.0.8078.4",
+  "sandboxUid": 1101,
+  "guestExitCode": 0,
+  "note": "Fingerprint of the local image used for the recorded run; subsequent CI builds have their own fingerprints. No Fly deployment."
+}
