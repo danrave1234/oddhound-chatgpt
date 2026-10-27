@@ -1,0 +1,3 @@
+'use client';
+import type {RunEvent} from '@oddhound/contracts';
+export function Workflow({events}:{events:RunEvent[]}){const steps=events.filter(e=>e.kind==='browser.action');return steps.length?<ol className="workflow-map">{steps.map((e,i)=><li key={e.id}><span className="step-number">{i+1}</span><div><strong>{String(e.data.action??'Observed action')}</strong><p>{typeof e.data.title==='string'?e.data.title:''}</p><small>{typeof e.data.url==='string'?e.data.url:''}</small><time>{new Date(e.createdAt).toLocaleTimeString()}</time></div></li>)}</ol>:<div className="empty-panel"><h2>No workflow states saved</h2><p>The map grows from observed browser actions.</p></div>;}

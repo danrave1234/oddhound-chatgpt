@@ -1,0 +1,1 @@
+{ "name": "@oddhound/agent", "private": true, "type": "module", "exports": "./index.ts", "dependencies": { "zod": "4.6.7", "@oddhound/contracts": "workspace:*" } }

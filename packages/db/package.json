@@ -1,0 +1,1 @@
+{ "name": "@oddhound/db", "private": true, "type": "module", "exports": "./index.ts", "dependencies": { "pg": "8.23.1", "drizzle-orm": "0.45.2", "@oddhound/contracts": "workspace:*" } }

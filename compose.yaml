@@ -1,0 +1,59 @@
+name: oddhound-product
+x-runtime: &runtime
+  build: { context: ., dockerfile: Dockerfile.dev }
+  working_dir: /workspace
+  volumes: [".:/workspace", "dependencies:/workspace/node_modules"]
+  environment: &environment
+    DATABASE_URL: postgres://oddhound:local-development-only@db:5432/oddhound
+    ODDHOUND_APP_URL: http://127.0.0.1:3000
+    ODDHOUND_LOCAL_WORKSPACE: "1"
+    ODDHOUND_ARTIFACT_DIRECTORY: /workspace/data/artifacts
+    NEXT_TELEMETRY_DISABLED: "1"
+  depends_on:
+    db: { condition: service_healthy }
+services:
+  db:
+    image: postgres:17-bookworm@sha256:858bb5e98eed02eb8cafbcdc007f9a65d1b613972028944a8ec2133ccaf80d27
+    environment: { POSTGRES_DB: oddhound, POSTGRES_USER: oddhound, POSTGRES_PASSWORD: local-development-only }
+    volumes: ["database:/var/lib/postgresql/data"]
+    healthcheck: { test: [CMD-SHELL, "pg_isready -U oddhound -d oddhound"], interval: 2s, timeout: 3s, retries: 20 }
+  setup:
+    <<: *runtime
+    command: [sh, -c, "pnpm install --frozen-lockfile && pnpm db:migrate"]
+  web:
+    restart: unless-stopped
+    <<: *runtime
+    ports: ["127.0.0.1:3000:3000"]
+    env_file: [{ path: .env.local, required: false }]
+    command: [pnpm, dev]
+  worker:
+    restart: unless-stopped
+    <<: *runtime
+    env_file: [{ path: .env.local, required: false }]
+    command: [pnpm, worker]
+  reaper:
+    restart: unless-stopped
+    <<: *runtime
+    env_file: [{ path: .env.local, required: false }]
+    command: [pnpm, reaper]
+  fixture:
+    restart: unless-stopped
+    <<: *runtime
+    environment:
+      FIXTURE_DATABASE_URL: postgres://oddhound_fixture:local-fixture-only@db:5432/oddhound_fixture
+      FIXTURE_ORIGIN: http://localhost:3002
+      FIXTURE_CORRECTED: "0"
+    ports: ["127.0.0.1:3002:3002"]
+    command: [sh, -c, "pnpm --filter @oddhound/fixture migrate && pnpm --filter @oddhound/fixture dev"]
+  fixture-corrected:
+    restart: unless-stopped
+    <<: *runtime
+    environment:
+      FIXTURE_DATABASE_URL: postgres://oddhound_fixture:local-fixture-only@db:5432/oddhound_fixture
+      FIXTURE_ORIGIN: http://localhost:3003
+      FIXTURE_CORRECTED: "1"
+    ports: ["127.0.0.1:3003:3002"]
+    command: [sh, -c, "pnpm --filter @oddhound/fixture migrate && pnpm --filter @oddhound/fixture dev"]
+volumes:
+  dependencies: {}
+  database: {}

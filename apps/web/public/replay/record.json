@@ -1,0 +1,51 @@
+{
+  "recordedAt": "2026-10-26T21:45:24.998Z",
+  "type": "scripted_browser_verification",
+  "modelInference": false,
+  "assertion": {
+    "id": "booking.seats.range",
+    "version": 1,
+    "rule": "Every persisted booking has an integer number of seats from 1 through 8.",
+    "minimum": 1,
+    "maximum": 8
+  },
+  "assertionHash": "2f4e7afe890cecdd2a04360a0f83790a0820ee01bdca7f81e526485577fd13b1",
+  "before": {
+    "contradictions": [
+      {
+        "id": "f90b8c4ddf4db89c187094fae95b97b1",
+        "title": "Boundary input",
+        "seats": -1,
+        "state": "active"
+      }
+    ],
+    "status": "failed",
+    "responseStatus": 201
+  },
+  "after": {
+    "status": "passed",
+    "responseStatus": 422
+  },
+  "steps": [
+    {
+      "label": "Register and sign in",
+      "ms": 493
+    },
+    {
+      "label": "Create, edit and cancel",
+      "ms": 360
+    },
+    {
+      "label": "Try a boundary input",
+      "ms": 203
+    },
+    {
+      "label": "Rerun after server fix",
+      "ms": 126
+    },
+    {
+      "label": "Compare assertions",
+      "ms": 0
+    }
+  ]
+}

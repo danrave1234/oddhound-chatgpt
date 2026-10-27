@@ -1,0 +1,16 @@
+{
+  "name": "oddhound-product", "private": true, "packageManager": "pnpm@11.9.0",
+  "engines": { "node": ">=26 <27" },
+  "scripts": {
+    "dev": "pnpm --filter @oddhound/web dev",
+    "build": "pnpm --filter @oddhound/web build",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "db:migrate": "tsx packages/db/migrate.ts && tsx apps/web/lib/migrate-auth.ts && tsx apps/worker/migrate.ts",
+    "worker": "tsx apps/worker/main.ts",
+    "reaper": "tsx apps/worker/reaper.ts",
+    "test:integration": "tsx --test tests/integration/*.test.ts",
+    "audit:deps": "pnpm audit --audit-level=high"
+  },
+  "devDependencies": { "typescript": "5.9.3", "tsx": "4.20.6", "@types/node": "24.10.0", "@types/react": "19.2.2", "@types/react-dom": "19.2.2", "@types/pg": "8.15.5" }
+}

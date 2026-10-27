@@ -1,0 +1,4 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {randomBytes} from 'node:crypto';
+import {seal,unseal,scrub} from '../packages/db/vault';
+test('credential encryption binds ciphertext to owner, site and reference',()=>{process.env.ODDHOUND_VAULT_KEY=randomBytes(32).toString('base64');const cipher=seal('synthetic-only','owner:site:password');assert.equal(unseal(cipher,'owner:site:password'),'synthetic-only');assert.throws(()=>unseal(cipher,'another:site:password'));const tampered=Buffer.from(cipher,'base64');tampered[tampered.length-1]^=1;assert.throws(()=>unseal(tampered.toString('base64'),'owner:site:password'));});
+test('known credential values and common encodings are redacted',()=>{const secret='synthetic! / password';const text=[secret,encodeURIComponent(secret),Buffer.from(secret).toString('base64')].join(' ');assert.equal(scrub(text,[secret]),'[REDACTED] [REDACTED] [REDACTED]');});

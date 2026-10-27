@@ -1,0 +1,1 @@
+{ "name": "@oddhound/ui", "private": true, "type": "module", "exports": "./index.ts", "dependencies": { "@primer/octicons-react": "19.42.0", "react": "19.3.1" } }

@@ -1,0 +1,10 @@
+import {getPool,event} from '@oddhound/db';
+import {releaseUnusedBudget} from '../../packages/db/budget';
+import {destroy,reapOrphans,runtimeConfigured} from './runtime';
+const pool=getPool();let busy=false;
+async function sweep(){if(busy)return;busy=true;try{
+  if(runtimeConfigured())await reapOrphans();
+  const stale=await pool.query("SELECT id FROM runs WHERE status IN ('provisioning','running','waiting_for_input','stopping','finalizing') AND (expires_at<now() OR lease_until<now() OR lease_until IS NULL)");
+  for(const r of stale.rows){await pool.query("UPDATE runs SET status='finalizing',generation=generation+1 WHERE id=$1",[r.id]);if(await destroy(r.id)){await releaseUnusedBudget(r.id);await pool.query("UPDATE runs SET status='blocked',stop_reason=COALESCE(stop_reason,'worker_lease_lost'),finished_at=now(),lease_until=NULL WHERE id=$1",[r.id]);await event(r.id,'run.reaped','Stale execution fenced and browser deletion confirmed. No action was retried.');}}
+}catch{console.error('Independent cleanup unavailable. New provisioning must remain closed.');}finally{busy=false;}}
+await sweep();const timer=setInterval(()=>void sweep(),10000);console.log('Independent orphan reaper ready.');for(const s of ['SIGINT','SIGTERM'] as const)process.once(s,()=>{clearInterval(timer);void pool.end().then(()=>process.exit(0));});

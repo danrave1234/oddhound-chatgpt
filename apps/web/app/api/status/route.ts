@@ -1,0 +1,1 @@
+import {NextResponse} from 'next/server';import {serviceStatus} from '../../../lib/status';export const dynamic='force-dynamic';export async function GET(){return NextResponse.json(await serviceStatus(),{headers:{'cache-control':'no-store'}});}
