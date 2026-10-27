@@ -1,0 +1,47 @@
+{
+  "imageIndex": "sha256:7f5dd46eab9bb8594f1edf216a86d810695e9d6ddb00decd3564740184aa8533",
+  "nodeVersions": [
+    {
+      "node": "v26.12.1",
+      "machineId": "2862752f6e1058"
+    },
+    {
+      "node": "v26.12.1",
+      "machineId": "683732ef554118"
+    }
+  ],
+  "modelInference": false,
+  "passed": true,
+  "machines": [
+    {
+      "imageDigest": "sha256:1c3939b9ab8fe3bcb0f2d3cdd801a2e43ee301dce3591e826756335edf2ad8d8",
+      "command": [
+        "node",
+        "/app/reaper.mjs"
+      ],
+      "name": "orphan-reaper",
+      "machineId": "683732ef554118",
+      "state": "started"
+    },
+    {
+      "imageDigest": "sha256:1c3939b9ab8fe3bcb0f2d3cdd801a2e43ee301dce3591e826756335edf2ad8d8",
+      "command": null,
+      "name": "queue-main",
+      "machineId": "2862752f6e1058",
+      "state": "started"
+    }
+  ],
+  "checkedAt": "2026-10-27T13:14:29.6885467Z",
+  "amd64Manifest": "sha256:1c3939b9ab8fe3bcb0f2d3cdd801a2e43ee301dce3591e826756335edf2ad8d8",
+  "runtimeSourcesCommit": "c258baa3d59a80929452e08f248eb8062df984fd",
+  "publicExecutionEnabled": false,
+  "database": {
+    "worker_online": true,
+    "enabled_compute_allocations": 0,
+    "outstanding_compute_holds": 0,
+    "active_runs": 0
+  },
+  "temporaryControllerRemoved": true,
+  "browserMachinesRemaining": 0,
+  "claims": "Actual updated queue worker/reaper images and remote Node versions; final inventory has only the two persistent services and zero browser Machines. The separate targetless controller-exit proof passes. No funded compute policy or public release is enabled."
+}

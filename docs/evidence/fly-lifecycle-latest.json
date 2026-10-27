@@ -1,8 +1,8 @@
 {
-  "createdAt": "2026-10-27T11:22:52.740Z",
-  "controllerMachineId": "2871577cd55228",
-  "runId": "c469f007-2dd4-490f-9a7f-ace118ba3e2b",
-  "browserMachineId": "1854e46c60ddd8",
+  "createdAt": "2026-10-27T13:15:21.143Z",
+  "controllerMachineId": "48ee5e9bd07008",
+  "runId": "f9212593-d6d9-4a99-b414-50d771f9fd10",
+  "browserMachineId": "2870e99f11e238",
   "sandbox": {
     "uid": 1101,
     "details": "Sandbox Status\nLayer 1 Sandbox\tNamespace\nPID namespaces\tYes\nNetwork namespaces\tYes\nSeccomp-BPF sandbox\tYes\nSeccomp-BPF sandbox supports TSYNC\tYes\nPtrace Protection with Yama LSM (Broker)\tNo\nPtrace Protection with Yama LSM (Non-broker)\tNo\n\nYou are adequately sandboxed.",
@@ -24,9 +24,11 @@
   "turns": 0,
   "passed": true,
   "claims": "Real targetless deployed controller exit before browser_machines persistence; independent production reaper and bounded unknown-allocation hold. No target initialization, model call, full runtime or public-release claim.",
-  "expectedHoldUntil": "2026-10-27T11:22:46.947Z",
-  "finalizedAt": "2026-10-27T11:22:50.683Z",
+  "expectedHoldUntil": "2026-10-27T13:15:09.375Z",
+  "finalizedAt": "2026-10-27T13:15:18.442Z",
   "releasedAfterUnknownWindow": true,
+  "allocationReleased": true,
   "providerExitCode": 42,
-  "providerExitConfirmedAt": "2026-10-27T11:20:54.723455924Z"
+  "providerExitConfirmedAt": "2026-10-27T13:13:42.185920429Z",
+  "runtimeSourcesCommit": "c258baa3d59a80929452e08f248eb8062df984fd"
 }
